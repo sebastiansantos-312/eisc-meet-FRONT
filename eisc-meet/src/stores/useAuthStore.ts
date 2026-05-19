@@ -1,8 +1,10 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   fetchSignInMethodsForEmail,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithPopup,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -15,6 +17,7 @@ import { auth } from "../services/firebase/firebase.config";
 import {
   createInitialUserProfile,
   completeUserProfile,
+  deleteUserProfile,
   getUserProfile,
   isUsernameAvailable,
   updateUserProfile,
@@ -47,6 +50,7 @@ type AuthStore = {
   loginWithEmail: (email: string, password: string) => Promise<UserData>;
   registerWithEmail: (payload: RegisterPayload) => Promise<UserData>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   fetchProfile: (uid: string) => Promise<UserData | null>;
   updateProfile: (data: Partial<Omit<UserData, "uid" | "createdAt">>) => Promise<void>;
   completeProfile: (data: CompleteProfilePayload) => Promise<UserData>;
@@ -61,13 +65,19 @@ const resolveProfile = async (user: User, extraData?: InitialUserExtras) => {
 
 const authErrorMessage = (error: unknown) => {
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 
   if (error instanceof Error && error.message.includes("Google")) return error.message;
   if (code.includes("email-already-in-use")) return "Este correo ya tiene una cuenta.";
+  if (code.includes("invalid-email")) return "El correo no tiene un formato valido.";
   if (code.includes("wrong-password") || code.includes("invalid-credential")) return "Correo o contrasena incorrectos.";
   if (code.includes("weak-password")) return "La contrasena debe tener al menos 6 caracteres.";
+  if (code.includes("network-request-failed")) return "No hay conexion con Firebase. Revisa tu internet e intenta de nuevo.";
+  if (code.includes("permission-denied")) return "Firestore rechazo la operacion. Revisa las reglas para users y usernames.";
   if (code.includes("popup-closed-by-user")) return "Cerraste la ventana de Google antes de terminar.";
-  if (code.includes("operation-not-allowed")) return "Este metodo de autenticacion no esta habilitado en Firebase.";
+  if (code.includes("operation-not-allowed")) {
+    return `Este metodo de autenticacion no esta habilitado en el proyecto Firebase que usa la app${projectId ? ` (${projectId})` : ""}.`;
+  }
   if (error instanceof Error && error.message.includes("username")) return error.message;
   if (error instanceof Error && error.message.includes("uso")) return error.message;
 
@@ -134,35 +144,41 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       const normalizedUsername = normalizeUsername(username);
-      const usernameAvailable = await isUsernameAvailable(normalizedUsername);
-
-      if (!usernameAvailable) {
-        throw new Error("Este username ya esta en uso.");
-      }
-
-      const methods = await fetchSignInMethodsForEmail(auth, email);
+      const normalizedEmail = email.trim().toLowerCase();
+      const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
 
       if (methods.includes("google.com") && !methods.includes("password")) {
         throw new Error("Este correo ya existe con Google. Entra con Google para continuar.");
       }
 
       if (methods.includes("password")) {
-        return get().loginWithEmail(email, password);
+        throw new Error("Este correo ya tiene una cuenta.");
       }
 
       const name = joinDisplayName(firstName, lastName);
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      await updateFirebaseProfile(result.user, { displayName: name ?? undefined });
-      const profile = await createInitialUserProfile(result.user, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        username: normalizedUsername,
-        name,
-        profileCompleted: true,
-      });
+      const result = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+
+      let profile: UserData;
+
+      try {
+        await updateFirebaseProfile(result.user, { displayName: name ?? undefined });
+        profile = await createInitialUserProfile(result.user, {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          username: normalizedUsername,
+          name,
+          provider: "password",
+          profileCompleted: true,
+        });
+      } catch (profileError) {
+        await deleteUser(result.user).catch(() => undefined);
+        throw profileError;
+      }
+
       set({ authUser: result.user, profile, loading: false });
       return profile;
     } catch (error) {
+      console.error("[EISC Meet] registerWithEmail failed:", error);
       set({ error: authErrorMessage(error), loading: false });
       throw error;
     }
@@ -176,6 +192,39 @@ const useAuthStore = create<AuthStore>((set, get) => ({
       set({ authUser: null, profile: null, loading: false, profileLoading: false });
     } catch (error) {
       set({ error: authErrorMessage(error), loading: false });
+      throw error;
+    }
+  },
+
+  deleteAccount: async () => {
+    const { authUser } = get();
+
+    if (!authUser) {
+      const error = new Error("Debes iniciar sesion para eliminar tu cuenta.");
+      set({ error: error.message });
+      throw error;
+    }
+
+    set({ loading: true, error: null });
+
+    try {
+      const providerIds = authUser.providerData.map((provider) => provider.providerId);
+
+      if (providerIds.includes("google.com")) {
+        await reauthenticateWithPopup(authUser, new GoogleAuthProvider());
+      }
+
+      await deleteUserProfile(authUser.uid);
+      await deleteUser(authUser);
+      set({ authUser: null, profile: null, loading: false, profileLoading: false });
+    } catch (error) {
+      const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+      const message = code.includes("requires-recent-login")
+        ? "Por seguridad, vuelve a iniciar sesion y elimina la cuenta de nuevo."
+        : authErrorMessage(error);
+
+      console.error("[EISC Meet] deleteAccount failed:", error);
+      set({ error: message, loading: false, profileLoading: false });
       throw error;
     }
   },

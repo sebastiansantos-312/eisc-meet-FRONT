@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Award, BookOpen, Calendar, Camera, Clock, Mail, User } from "lucide-react";
+import { AlertTriangle, Award, BookOpen, Calendar, Camera, Clock, Mail, Trash2, User, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import DashboardShell from "../../components/DashboardShell";
 import useAuthStore from "../../stores/useAuthStore";
 import { joinDisplayName, splitDisplayName, type AcademicYear } from "../../types/user.types";
@@ -36,9 +37,11 @@ const emptyForm: ProfileForm = {
 };
 
 const Profile = () => {
-  const { authUser, profile, profileLoading, error, updateProfile } = useAuthStore();
+  const navigate = useNavigate();
+  const { authUser, profile, profileLoading, loading, error, updateProfile, deleteAccount, clearError } = useAuthStore();
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [status, setStatus] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -94,6 +97,18 @@ const Profile = () => {
       setStatus("Perfil actualizado correctamente.");
     } catch {
       // El store expone el mensaje para la UI.
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setStatus(null);
+    clearError();
+
+    try {
+      await deleteAccount();
+      navigate("/login", { replace: true });
+    } catch {
+      setShowDeleteModal(false);
     }
   };
 
@@ -252,9 +267,79 @@ const Profile = () => {
             >
               {profileLoading ? "Saving..." : "Save Changes"}
             </button>
+
+            <section className="rounded-xl border border-red-400/30 bg-red-500/10 p-6">
+              <h2 className="mb-2 flex items-center gap-2 font-semibold text-red-100">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </h2>
+              <p className="mb-4 text-sm text-red-100/80">
+                Delete your profile data, username reservation, and Firebase Auth account.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  clearError();
+                  setShowDeleteModal(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-400 px-4 py-2.5 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Account
+              </button>
+            </section>
           </form>
         </div>
       </section>
+
+      {showDeleteModal ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl"
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 id="delete-account-title" className="text-xl font-semibold text-card-foreground">
+                  Delete account?
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This removes your Firestore profile, username reservation, and login account. This action cannot be undone.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+                aria-label="Close delete account dialog"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleDeleteAccount}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-400 px-4 py-2.5 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                {loading ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </DashboardShell>
   );
 };

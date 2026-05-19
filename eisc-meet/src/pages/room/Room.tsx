@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ChevronLeft,
@@ -17,6 +17,10 @@ import {
   VideoOff,
   X,
 } from "lucide-react";
+import { getRoomById } from "../../repositories/room.repository";
+import { socket } from "../../sockets/socketManager";
+import useAuthStore from "../../stores/useAuthStore";
+import type { StudyRoom } from "../../types/room.types";
 
 const participants = [
   { id: "1", name: "You", avatar: "YO", isMuted: false, isVideoOff: false, isSpeaking: true },
@@ -35,10 +39,67 @@ const chatMessages = [
 
 const Room = () => {
   const { roomId } = useParams();
+  const authUser = useAuthStore((state) => state.authUser);
+  const [room, setRoom] = useState<StudyRoom | null>(null);
+  const [roomLoading, setRoomLoading] = useState(true);
+  const [roomError, setRoomError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRoom = async () => {
+      if (!roomId) {
+        setRoomLoading(false);
+        setRoomError("No se encontro el ID de la sala.");
+        return;
+      }
+
+      setRoomLoading(true);
+      setRoomError(null);
+
+      try {
+        const nextRoom = await getRoomById(roomId);
+
+        if (!active) return;
+
+        if (!nextRoom) {
+          setRoomError("Esta sala no existe o no tienes acceso.");
+          setRoom(null);
+          return;
+        }
+
+        setRoom(nextRoom);
+      } catch {
+        if (active) setRoomError("No se pudo cargar la sala.");
+      } finally {
+        if (active) setRoomLoading(false);
+      }
+    };
+
+    loadRoom();
+
+    return () => {
+      active = false;
+    };
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!roomId || !authUser?.uid) return;
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.emit("room:join", { roomId, userId: authUser.uid });
+
+    return () => {
+      socket.emit("room:leave", { roomId, userId: authUser.uid });
+    };
+  }, [authUser?.uid, roomId]);
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -52,7 +113,9 @@ const Room = () => {
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-card-foreground sm:text-xl">CS 101: Data Structures</h1>
+            <h1 className="text-lg font-semibold text-card-foreground sm:text-xl">
+              {roomLoading ? "Loading room..." : room?.name ?? "Study room"}
+            </h1>
             <p className="text-xs text-muted-foreground">Room ID: {roomId ?? "general"}</p>
           </div>
         </div>
@@ -68,6 +131,11 @@ const Room = () => {
 
       <section className="flex min-h-0 flex-1 overflow-hidden">
         <div className="min-w-0 flex-1 overflow-auto p-4">
+          {roomError ? (
+            <div className="mb-4 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {roomError}
+            </div>
+          ) : null}
           <div className="grid content-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {participants.map((participant) => (
               <ParticipantVideo key={participant.id} participant={participant} />

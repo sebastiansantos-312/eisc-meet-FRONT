@@ -13,6 +13,7 @@ export type InitialUserExtras = Partial<
     | "lastName"
     | "name"
     | "username"
+    | "provider"
     | "profileCompleted"
     | "bio"
     | "university"
@@ -78,19 +79,24 @@ export const createInitialUserProfile = async (
       {
         firstName: extraData.firstName,
         lastName: extraData.lastName,
-        username: normalizedUsername,
         profileCompleted: Boolean(normalizedUsername),
+        provider: extraData.provider,
       },
     ),
     ...extraData,
     uid: authUser.uid,
     email: authUser.email,
     photoURL: authUser.photoURL,
-    username: normalizedUsername,
     profileCompleted: Boolean(normalizedUsername),
     createdAt: now,
     updatedAt: now,
   };
+
+  if (normalizedUsername) {
+    profile.username = normalizedUsername;
+  } else {
+    delete profile.username;
+  }
 
   if (!normalizedUsername) {
     await setDoc(userDocRef(authUser.uid), profile, { merge: true });

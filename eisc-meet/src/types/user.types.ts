@@ -8,6 +8,7 @@ export type UserData = {
   name: string | null;
   email: string | null;
   photoURL?: string | null;
+  provider?: "password" | "google";
   profileCompleted?: boolean;
   bio?: string;
   university?: string;
@@ -28,7 +29,7 @@ export const buildInitialUserData = (
   name: string | null,
   email: string | null,
   photoURL: string | null,
-  extras: Partial<Pick<UserData, "firstName" | "lastName" | "username" | "profileCompleted">> = {},
+  extras: Partial<Pick<UserData, "firstName" | "lastName" | "username" | "profileCompleted" | "provider">> = {},
 ): UserData => ({
   uid,
   firstName: extras.firstName ?? splitDisplayName(name).firstName,
@@ -37,6 +38,7 @@ export const buildInitialUserData = (
   name,
   email,
   photoURL,
+  provider: extras.provider ?? "google",
   profileCompleted: extras.profileCompleted ?? Boolean(extras.username),
   bio: "",
   university: "",

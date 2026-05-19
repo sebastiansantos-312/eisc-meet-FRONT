@@ -1,39 +1,110 @@
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AtSign, Lock, Mail, User, Video } from "lucide-react";
+import { AtSign, CheckCircle, Lock, Mail, User, Video } from "lucide-react";
 import useAuthStore from "../../stores/useAuthStore";
 import { isValidUsername } from "../../types/user.types";
+
+type RegisterForm = {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  termsAccepted: boolean;
+};
+
+type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;
+
+const initialForm: RegisterForm = {
+  firstName: "",
+  lastName: "",
+  username: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  termsAccepted: false,
+};
+
+const namePattern = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{2,30}$/;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const validateRegisterForm = (form: RegisterForm): RegisterErrors => {
+  const errors: RegisterErrors = {};
+  const firstName = form.firstName.trim();
+  const lastName = form.lastName.trim();
+  const username = form.username.trim();
+  const email = form.email.trim();
+
+  if (!namePattern.test(firstName)) {
+    errors.firstName = "Usa solo letras, minimo 2 y maximo 30 caracteres.";
+  }
+
+  if (!namePattern.test(lastName)) {
+    errors.lastName = "Usa solo letras, minimo 2 y maximo 30 caracteres.";
+  }
+
+  if (!isValidUsername(username)) {
+    errors.username = "Usa 3 a 20 caracteres: letras, numeros o underscore, sin espacios.";
+  }
+
+  if (!emailPattern.test(email)) {
+    errors.email = "Ingresa un correo valido.";
+  }
+
+  if (form.password.length < 6) {
+    errors.password = "La contrasena debe tener al menos 6 caracteres.";
+  } else if (!/[A-Z]/.test(form.password) || !/[a-z]/.test(form.password) || !/\d/.test(form.password)) {
+    errors.password = "Recomendado: incluye mayuscula, minuscula y numero.";
+  }
+
+  if (form.confirmPassword !== form.password) {
+    errors.confirmPassword = "Las contrasenas no coinciden.";
+  }
+
+  if (!form.termsAccepted) {
+    errors.termsAccepted = "Debes aceptar los terminos para continuar.";
+  }
+
+  return errors;
+};
 
 const Register = () => {
   const navigate = useNavigate();
   const { error, loading, loginWithGoogle, registerWithEmail, clearError } = useAuthStore();
+  const [form, setForm] = useState<RegisterForm>(initialForm);
+  const [fieldErrors, setFieldErrors] = useState<RegisterErrors>({});
+  const [status, setStatus] = useState<string | null>(null);
+
+  const updateField = <K extends keyof RegisterForm>(key: K, value: RegisterForm[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: undefined }));
+    setStatus(null);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     clearError();
+    setStatus(null);
 
-    const formData = new FormData(event.currentTarget);
-    const firstName = String(formData.get("firstName") ?? "");
-    const lastName = String(formData.get("lastName") ?? "");
-    const username = String(formData.get("username") ?? "");
-    const email = String(formData.get("email") ?? "");
-    const password = String(formData.get("password") ?? "");
-    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+    const normalizedForm = {
+      ...form,
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      username: form.username.trim(),
+      email: form.email.trim().toLowerCase(),
+    };
+    const errors = validateRegisterForm(normalizedForm);
 
-    if (password !== confirmPassword) {
-      useAuthStore.setState({ error: "Las contrasenas no coinciden." });
-      return;
-    }
-
-    if (!isValidUsername(username)) {
-      useAuthStore.setState({
-        error: "El username debe tener 3 a 20 caracteres y solo usar letras, numeros o guion bajo.",
-      });
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
       return;
     }
 
     try {
-      await registerWithEmail({ firstName, lastName, username, email, password });
+      await registerWithEmail(normalizedForm);
+      setStatus("Cuenta creada correctamente.");
       navigate("/dashboard");
     } catch {
       // El store expone el mensaje para la UI.
@@ -42,6 +113,7 @@ const Register = () => {
 
   const handleGoogleRegister = async () => {
     clearError();
+    setStatus(null);
 
     try {
       const profile = await loginWithGoogle();
@@ -67,105 +139,105 @@ const Register = () => {
             <p className="text-sm text-muted-foreground">Join your classmates in collaborative study rooms</p>
           </div>
 
-          {error ? (
-            <div className="mb-5 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {error}
+          {error || status ? (
+            <div
+              className={`mb-5 rounded-lg border px-4 py-3 text-sm ${
+                error ? "border-red-400/30 bg-red-500/10 text-red-200" : "border-green-400/30 bg-green-500/10 text-green-200"
+              }`}
+            >
+              {status ? (
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  {status}
+                </span>
+              ) : (
+                error
+              )}
             </div>
           ) : null}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-card-foreground">First Name</span>
-                <span className="relative block">
-                  <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    name="firstName"
-                    type="text"
-                    required
-                    placeholder="Jane"
-                    className="w-full rounded-lg border border-input bg-input-background py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </span>
-              </label>
+              <TextField
+                label="First Name"
+                name="firstName"
+                value={form.firstName}
+                onChange={(value) => updateField("firstName", value)}
+                error={fieldErrors.firstName}
+                placeholder="Jane"
+                icon={<User className="h-5 w-5" />}
+              />
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-card-foreground">Last Name</span>
-                <input
-                  name="lastName"
-                  type="text"
-                  required
-                  placeholder="Smith"
-                  className="w-full rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </label>
+              <TextField
+                label="Last Name"
+                name="lastName"
+                value={form.lastName}
+                onChange={(value) => updateField("lastName", value)}
+                error={fieldErrors.lastName}
+                placeholder="Smith"
+              />
             </div>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-card-foreground">Username</span>
-              <span className="relative block">
-                <AtSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  name="username"
-                  type="text"
-                  required
-                  minLength={3}
-                  maxLength={20}
-                  pattern="[A-Za-z0-9_]{3,20}"
-                  placeholder="jane_smith"
-                  className="w-full rounded-lg border border-input bg-input-background py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </span>
-              <span className="mt-2 block text-xs text-muted-foreground">Use 3 to 20 letters, numbers, or underscores.</span>
-            </label>
+            <TextField
+              label="Username"
+              name="username"
+              value={form.username}
+              onChange={(value) => updateField("username", value)}
+              error={fieldErrors.username}
+              placeholder="jane_smith"
+              minLength={3}
+              maxLength={20}
+              pattern="[A-Za-z0-9_]{3,20}"
+              icon={<AtSign className="h-5 w-5" />}
+              helper="Use 3 to 20 letters, numbers, or underscores."
+            />
+
+            <TextField
+              label="Email Address"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={(value) => updateField("email", value.toLowerCase())}
+              error={fieldErrors.email}
+              placeholder="student@university.edu"
+              icon={<Mail className="h-5 w-5" />}
+            />
+
+            <TextField
+              label="Password"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={(value) => updateField("password", value)}
+              error={fieldErrors.password}
+              placeholder="Create a strong password"
+              minLength={6}
+              icon={<Lock className="h-5 w-5" />}
+            />
+
+            <TextField
+              label="Confirm Password"
+              name="confirmPassword"
+              type="password"
+              value={form.confirmPassword}
+              onChange={(value) => updateField("confirmPassword", value)}
+              error={fieldErrors.confirmPassword}
+              placeholder="Confirm your password"
+              minLength={6}
+              icon={<Lock className="h-5 w-5" />}
+            />
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-card-foreground">Email Address</span>
-              <span className="relative block">
-                <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <span className="flex cursor-pointer items-start gap-2 text-sm text-muted-foreground">
                 <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="student@university.edu"
-                  className="w-full rounded-lg border border-input bg-input-background py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary"
+                  type="checkbox"
+                  checked={form.termsAccepted}
+                  onChange={(event) => updateField("termsAccepted", event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-primary"
                 />
+                <span>I agree to the Terms of Service and Privacy Policy</span>
               </span>
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-card-foreground">Password</span>
-              <span className="relative block">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="Create a strong password"
-                  className="w-full rounded-lg border border-input bg-input-background py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </span>
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-card-foreground">Confirm Password</span>
-              <span className="relative block">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="Confirm your password"
-                  className="w-full rounded-lg border border-input bg-input-background py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </span>
-            </label>
-
-            <label className="flex cursor-pointer items-start gap-2 text-sm text-muted-foreground">
-              <input type="checkbox" required className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-primary" />
-              <span>I agree to the Terms of Service and Privacy Policy</span>
+              <FieldError message={fieldErrors.termsAccepted} />
             </label>
 
             <button
@@ -204,6 +276,68 @@ const Register = () => {
       </section>
     </main>
   );
+};
+
+type TextFieldProps = {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  placeholder: string;
+  type?: string;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  helper?: string;
+  icon?: ReactNode;
+};
+
+const TextField = ({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  placeholder,
+  type = "text",
+  minLength,
+  maxLength,
+  pattern,
+  helper,
+  icon,
+}: TextFieldProps) => (
+  <label className="block">
+    <span className="mb-2 block text-sm font-medium text-card-foreground">{label}</span>
+    <span className="relative block">
+      {icon ? <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span> : null}
+      <input
+        name={name}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        minLength={minLength}
+        maxLength={maxLength}
+        pattern={pattern}
+        placeholder={placeholder}
+        aria-invalid={Boolean(error)}
+        aria-describedby={`${name}-feedback`}
+        className={`w-full rounded-lg border bg-input-background py-2.5 pr-4 text-foreground placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary ${
+          icon ? "pl-10" : "pl-3"
+        } ${error ? "border-red-400" : "border-input"}`}
+      />
+    </span>
+    <span id={`${name}-feedback`}>
+      <FieldError message={error} />
+      {!error && helper ? <span className="mt-2 block text-xs text-muted-foreground">{helper}</span> : null}
+    </span>
+  </label>
+);
+
+const FieldError = ({ message }: { message?: string }) => {
+  if (!message) return null;
+
+  return <span className="mt-2 block text-xs font-medium text-red-200">{message}</span>;
 };
 
 export default Register;
