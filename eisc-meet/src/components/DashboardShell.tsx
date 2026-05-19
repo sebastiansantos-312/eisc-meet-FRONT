@@ -15,15 +15,15 @@ type NavItemProps = {
 };
 
 const navItems = [
-  { to: "/dashboard", icon: <Home className="h-5 w-5" />, label: "Dashboard" },
-  { to: "/room/general", icon: <Calendar className="h-5 w-5" />, label: "Sessions" },
-  { to: "/dashboard", icon: <Users className="h-5 w-5" />, label: "Study Groups" },
-  { to: "/profile", icon: <User className="h-5 w-5" />, label: "Profile" },
+  { to: "/dashboard", icon: <Home className="h-5 w-5" />, label: "Inicio" },
+  { to: "/room/general", icon: <Calendar className="h-5 w-5" />, label: "Sesiones" },
+  { to: "/dashboard", icon: <Users className="h-5 w-5" />, label: "Grupos de estudio" },
+  { to: "/profile", icon: <User className="h-5 w-5" />, label: "Perfil" },
 ];
 
 const secondaryItems = [
-  { to: "/profile", icon: <Settings className="h-5 w-5" />, label: "Settings" },
-  { to: "/dashboard", icon: <Bell className="h-5 w-5" />, label: "Notifications", badge: 3 },
+  { to: "/profile", icon: <Settings className="h-5 w-5" />, label: "Configuracion" },
+  { to: "/dashboard", icon: <Bell className="h-5 w-5" />, label: "Notificaciones", badge: 3 },
 ];
 
 const DashboardShell = ({ children }: DashboardShellProps) => {
@@ -64,7 +64,7 @@ const DashboardShell = ({ children }: DashboardShellProps) => {
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/50"
             >
               <LogOut className="h-5 w-5" />
-              Sign Out
+              Cerrar sesion
             </button>
           </div>
         </div>

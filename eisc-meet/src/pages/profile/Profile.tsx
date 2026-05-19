@@ -66,7 +66,7 @@ const Profile = () => {
   }, [profile]);
 
   const initials = useMemo(() => {
-    const name = profile?.name ?? authUser?.displayName ?? "EISC Student";
+    const name = profile?.name ?? authUser?.displayName ?? "Estudiante EISC";
     return name
       .split(" ")
       .filter(Boolean)
@@ -136,8 +136,8 @@ const Profile = () => {
   return (
     <DashboardShell>
       <header className="border-b border-border bg-card px-4 py-5 sm:px-6">
-        <h1 className="text-2xl font-semibold text-card-foreground">Profile Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage your account and preferences</p>
+        <h1 className="text-2xl font-semibold text-card-foreground">Configuracion del perfil</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Administra tu cuenta y preferencias</p>
       </header>
 
       <section className="mx-auto max-w-5xl p-4 sm:p-6">
@@ -152,7 +152,7 @@ const Profile = () => {
             <div className="rounded-xl border border-border bg-card p-6 text-center">
               <div className="relative mb-4 inline-block">
                 {profile?.photoURL ? (
-                  <img src={profile.photoURL} alt={profile.name ?? "User profile"} className="h-32 w-32 rounded-full object-cover" />
+                  <img src={profile.photoURL} alt={profile.name ?? "Perfil de usuario"} className="h-32 w-32 rounded-full object-cover" />
                 ) : (
                   <div className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-secondary/20">
                     <span className="text-4xl font-semibold text-primary">{initials}</span>
@@ -162,12 +162,12 @@ const Profile = () => {
                   <Camera className="h-5 w-5" />
                 </button>
               </div>
-              <h2 className="text-lg font-semibold text-card-foreground">{profile?.name ?? authUser?.displayName ?? "EISC Student"}</h2>
-              <p className="mb-4 text-sm text-muted-foreground">{profile?.major || "Student"}</p>
+              <h2 className="text-lg font-semibold text-card-foreground">{profile?.name ?? authUser?.displayName ?? "Estudiante EISC"}</h2>
+              <p className="mb-4 text-sm text-muted-foreground">{profile?.major || "Estudiante"}</p>
               <div className="space-y-3 border-t border-border pt-4">
-                <StatRow icon={<Clock className="h-4 w-4" />} label="Study Hours" value={`${profile?.studyHours ?? 0} hrs`} />
-                <StatRow icon={<Award className="h-4 w-4" />} label="Sessions" value={String(profile?.sessionsJoined ?? 0)} />
-                <StatRow icon={<Calendar className="h-4 w-4" />} label="Member Since" value={profile?.createdAt ? new Date(profile.createdAt).getFullYear().toString() : "2026"} />
+                <StatRow icon={<Clock className="h-4 w-4" />} label="Horas de estudio" value={`${profile?.studyHours ?? 0} hrs`} />
+                <StatRow icon={<Award className="h-4 w-4" />} label="Sesiones" value={String(profile?.sessionsJoined ?? 0)} />
+                <StatRow icon={<Calendar className="h-4 w-4" />} label="Miembro desde" value={profile?.createdAt ? new Date(profile.createdAt).getFullYear().toString() : "2026"} />
               </div>
             </div>
           </aside>
@@ -176,16 +176,16 @@ const Profile = () => {
             <section className="rounded-xl border border-border bg-card p-6">
               <h2 className="mb-4 flex items-center gap-2 font-semibold text-card-foreground">
                 <User className="h-5 w-5 text-primary" />
-                Personal Information
+                Informacion personal
               </h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <TextField label="First Name" value={form.firstName} onChange={(value) => updateField("firstName", value)} />
-                  <TextField label="Last Name" value={form.lastName} onChange={(value) => updateField("lastName", value)} />
+                  <TextField label="Nombres" value={form.firstName} onChange={(value) => updateField("firstName", value)} />
+                  <TextField label="Apellidos" value={form.lastName} onChange={(value) => updateField("lastName", value)} />
                 </div>
                 <TextField label="Username" value={form.username} onChange={(value) => updateField("username", value)} />
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-card-foreground">Email Address</span>
+                  <span className="mb-2 block text-sm font-medium text-card-foreground">Correo electronico</span>
                   <span className="relative block">
                     <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     <input
@@ -197,7 +197,7 @@ const Profile = () => {
                   </span>
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-card-foreground">Bio</span>
+                  <span className="mb-2 block text-sm font-medium text-card-foreground">Biografia</span>
                   <textarea
                     rows={3}
                     value={form.bio}
@@ -211,49 +211,49 @@ const Profile = () => {
             <section className="rounded-xl border border-border bg-card p-6">
               <h2 className="mb-4 flex items-center gap-2 font-semibold text-card-foreground">
                 <BookOpen className="h-5 w-5 text-primary" />
-                Academic Information
+                Informacion academica
               </h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <TextField label="University" value={form.university} onChange={(value) => updateField("university", value)} />
-                  <TextField label="Major" value={form.major} onChange={(value) => updateField("major", value)} />
+                  <TextField label="Universidad" value={form.university} onChange={(value) => updateField("university", value)} />
+                  <TextField label="Programa" value={form.major} onChange={(value) => updateField("major", value)} />
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <label className="block">
-                    <span className="mb-2 block text-sm font-medium text-card-foreground">Year</span>
+                    <span className="mb-2 block text-sm font-medium text-card-foreground">Semestre/Nivel</span>
                     <select
                       className="w-full rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       value={form.year}
                       onChange={(event) => updateField("year", event.target.value as AcademicYear)}
                     >
-                      <option value="">Select year</option>
-                      <option value="freshman">Freshman</option>
-                      <option value="sophomore">Sophomore</option>
-                      <option value="junior">Junior</option>
-                      <option value="senior">Senior</option>
-                      <option value="graduate">Graduate</option>
+                      <option value="">Selecciona nivel</option>
+                      <option value="freshman">Primeros semestres</option>
+                      <option value="sophomore">Intermedio</option>
+                      <option value="junior">Avanzado</option>
+                      <option value="senior">Ultimo ano</option>
+                      <option value="graduate">Posgrado</option>
                     </select>
                   </label>
-                  <TextField label="GPA (Optional)" value={form.gpa} onChange={(value) => updateField("gpa", value)} />
+                  <TextField label="Promedio (opcional)" value={form.gpa} onChange={(value) => updateField("gpa", value)} />
                 </div>
               </div>
             </section>
 
             <section className="rounded-xl border border-border bg-card p-6">
-              <h2 className="mb-4 font-semibold text-card-foreground">Study Preferences</h2>
+              <h2 className="mb-4 font-semibold text-card-foreground">Preferencias de estudio</h2>
               <div className="space-y-4">
                 <CheckboxField
-                  label="Allow others to invite me to study sessions"
+                  label="Permitir que otros me inviten a sesiones de estudio"
                   checked={form.allowStudyInvites}
                   onChange={(value) => updateField("allowStudyInvites", value)}
                 />
                 <CheckboxField
-                  label="Enable email notifications for new sessions"
+                  label="Activar notificaciones por correo para nuevas sesiones"
                   checked={form.enableEmailNotifications}
                   onChange={(value) => updateField("enableEmailNotifications", value)}
                 />
                 <CheckboxField
-                  label="Show my study hours on public profile"
+                  label="Mostrar mis horas de estudio en el perfil publico"
                   checked={form.showStudyHoursPublic}
                   onChange={(value) => updateField("showStudyHoursPublic", value)}
                 />
@@ -265,16 +265,16 @@ const Profile = () => {
               disabled={profileLoading}
               className="rounded-lg bg-primary px-6 py-2.5 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {profileLoading ? "Saving..." : "Save Changes"}
+              {profileLoading ? "Guardando..." : "Guardar cambios"}
             </button>
 
             <section className="rounded-xl border border-red-400/30 bg-red-500/10 p-6">
               <h2 className="mb-2 flex items-center gap-2 font-semibold text-red-100">
                 <AlertTriangle className="h-5 w-5" />
-                Danger Zone
+                Zona de riesgo
               </h2>
               <p className="mb-4 text-sm text-red-100/80">
-                Delete your profile data, username reservation, and Firebase Auth account.
+                Elimina tus datos de perfil, reserva de username y cuenta de Firebase Auth.
               </p>
               <button
                 type="button"
@@ -285,7 +285,7 @@ const Profile = () => {
                 className="inline-flex items-center gap-2 rounded-lg bg-red-400 px-4 py-2.5 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete Account
+                Eliminar cuenta
               </button>
             </section>
           </form>
@@ -303,17 +303,17 @@ const Profile = () => {
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 id="delete-account-title" className="text-xl font-semibold text-card-foreground">
-                  Delete account?
+                  Eliminar cuenta?
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  This removes your Firestore profile, username reservation, and login account. This action cannot be undone.
+                  Esto elimina tu perfil en Firestore, tu reserva de username y tu cuenta de acceso. Esta accion no se puede deshacer.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
                 className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
-                aria-label="Close delete account dialog"
+                aria-label="Cerrar dialogo de eliminar cuenta"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -325,7 +325,7 @@ const Profile = () => {
                 onClick={() => setShowDeleteModal(false)}
                 className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                Cancel
+                Cancelar
               </button>
               <button
                 type="button"
@@ -334,7 +334,7 @@ const Profile = () => {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-400 px-4 py-2.5 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Trash2 className="h-4 w-4" />
-                {loading ? "Deleting..." : "Delete Account"}
+                {loading ? "Eliminando..." : "Eliminar cuenta"}
               </button>
             </div>
           </section>

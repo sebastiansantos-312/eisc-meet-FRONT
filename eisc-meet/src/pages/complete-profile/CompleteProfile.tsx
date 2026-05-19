@@ -54,8 +54,8 @@ const CompleteProfile = () => {
 
         <div className="rounded-2xl border border-border bg-card p-8 shadow-lg">
           <div className="mb-6">
-            <h1 className="mb-2 text-2xl font-semibold text-card-foreground">Complete your profile</h1>
-            <p className="text-sm text-muted-foreground">Choose a unique username before entering your dashboard</p>
+            <h1 className="mb-2 text-2xl font-semibold text-card-foreground">Completa tu perfil</h1>
+            <p className="text-sm text-muted-foreground">Elige un username unico antes de entrar a tu inicio</p>
           </div>
 
           {error ? (
@@ -67,7 +67,7 @@ const CompleteProfile = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-card-foreground">First Name</span>
+                <span className="mb-2 block text-sm font-medium text-card-foreground">Nombres</span>
                 <span className="relative block">
                   <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <input
@@ -80,7 +80,7 @@ const CompleteProfile = () => {
                 </span>
               </label>
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-card-foreground">Last Name</span>
+                <span className="mb-2 block text-sm font-medium text-card-foreground">Apellidos</span>
                 <input
                   name="lastName"
                   type="text"
@@ -106,7 +106,7 @@ const CompleteProfile = () => {
                   className="w-full rounded-lg border border-input bg-input-background py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </span>
-              <span className="mt-2 block text-xs text-muted-foreground">Use 3 to 20 letters, numbers, or underscores.</span>
+              <span className="mt-2 block text-xs text-muted-foreground">Usa de 3 a 20 letras, numeros o guion bajo.</span>
             </label>
 
             <button
@@ -114,7 +114,7 @@ const CompleteProfile = () => {
               disabled={profileLoading}
               className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {profileLoading ? "Saving..." : "Continue"}
+              {profileLoading ? "Guardando..." : "Continuar"}
             </button>
           </form>
         </div>

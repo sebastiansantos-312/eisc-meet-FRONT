@@ -135,8 +135,8 @@ const Register = () => {
 
         <div className="rounded-2xl border border-border bg-card p-8 shadow-lg">
           <div className="mb-6">
-            <h1 className="mb-2 text-2xl font-semibold text-card-foreground">Create your account</h1>
-            <p className="text-sm text-muted-foreground">Join your classmates in collaborative study rooms</p>
+            <h1 className="mb-2 text-2xl font-semibold text-card-foreground">Crea tu cuenta</h1>
+            <p className="text-sm text-muted-foreground">Unete a tus companeros en salas de estudio colaborativas</p>
           </div>
 
           {error || status ? (
@@ -159,22 +159,22 @@ const Register = () => {
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField
-                label="First Name"
+                label="Nombres"
                 name="firstName"
                 value={form.firstName}
                 onChange={(value) => updateField("firstName", value)}
                 error={fieldErrors.firstName}
-                placeholder="Jane"
+                placeholder="Maria"
                 icon={<User className="h-5 w-5" />}
               />
 
               <TextField
-                label="Last Name"
+                label="Apellidos"
                 name="lastName"
                 value={form.lastName}
                 onChange={(value) => updateField("lastName", value)}
                 error={fieldErrors.lastName}
-                placeholder="Smith"
+                placeholder="Gomez"
               />
             </div>
 
@@ -184,45 +184,45 @@ const Register = () => {
               value={form.username}
               onChange={(value) => updateField("username", value)}
               error={fieldErrors.username}
-              placeholder="jane_smith"
+              placeholder="maria_gomez"
               minLength={3}
               maxLength={20}
               pattern="[A-Za-z0-9_]{3,20}"
               icon={<AtSign className="h-5 w-5" />}
-              helper="Use 3 to 20 letters, numbers, or underscores."
+              helper="Usa de 3 a 20 letras, numeros o guion bajo."
             />
 
             <TextField
-              label="Email Address"
+              label="Correo electronico"
               name="email"
               type="email"
               value={form.email}
               onChange={(value) => updateField("email", value.toLowerCase())}
               error={fieldErrors.email}
-              placeholder="student@university.edu"
+              placeholder="estudiante@universidad.edu"
               icon={<Mail className="h-5 w-5" />}
             />
 
             <TextField
-              label="Password"
+              label="Contrasena"
               name="password"
               type="password"
               value={form.password}
               onChange={(value) => updateField("password", value)}
               error={fieldErrors.password}
-              placeholder="Create a strong password"
+              placeholder="Crea una contrasena segura"
               minLength={6}
               icon={<Lock className="h-5 w-5" />}
             />
 
             <TextField
-              label="Confirm Password"
+              label="Confirmar contrasena"
               name="confirmPassword"
               type="password"
               value={form.confirmPassword}
               onChange={(value) => updateField("confirmPassword", value)}
               error={fieldErrors.confirmPassword}
-              placeholder="Confirm your password"
+              placeholder="Confirma tu contrasena"
               minLength={6}
               icon={<Lock className="h-5 w-5" />}
             />
@@ -235,7 +235,7 @@ const Register = () => {
                   onChange={(event) => updateField("termsAccepted", event.target.checked)}
                   className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-primary"
                 />
-                <span>I agree to the Terms of Service and Privacy Policy</span>
+                <span>Acepto los terminos de servicio y la politica de privacidad</span>
               </span>
               <FieldError message={fieldErrors.termsAccepted} />
             </label>
@@ -245,13 +245,13 @@ const Register = () => {
               disabled={loading}
               className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? "Creando cuenta..." : "Crear cuenta"}
             </button>
 
             <div className="relative py-1">
               <div className="absolute inset-x-0 top-1/2 border-t border-border" />
               <div className="relative flex justify-center text-sm">
-                <span className="bg-card px-4 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-4 text-muted-foreground">O continua con</span>
               </div>
             </div>
 
@@ -262,14 +262,14 @@ const Register = () => {
               className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-card py-3 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">G</span>
-              {loading ? "Connecting..." : "Sign up with Google"}
+              {loading ? "Conectando..." : "Registrarse con Google"}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
+            Ya tienes cuenta?{" "}
             <Link to="/login" className="font-medium text-primary transition-colors hover:text-primary/80">
-              Sign in
+              Inicia sesion
             </Link>
           </p>
         </div>

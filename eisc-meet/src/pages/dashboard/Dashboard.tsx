@@ -8,7 +8,7 @@ import useAuthStore from "../../stores/useAuthStore";
 import type { StudyRoom } from "../../types/room.types";
 
 const onlineUsers = [
-  { name: "You", avatar: "YO", status: "Available" },
+  { name: "Tu", avatar: "TU", status: "Disponible" },
 ];
 
 const Dashboard = () => {
@@ -99,9 +99,9 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card px-4 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-card-foreground">Study Rooms</h1>
+            <h1 className="text-2xl font-semibold text-card-foreground">Salas de estudio</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {profile?.name ? `${profile.name}, create or reopen your study sessions` : "Create or reopen your study sessions"}
+              {profile?.name ? `${profile.name}, crea o retoma tus sesiones de estudio` : "Crea o retoma tus sesiones de estudio"}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -111,7 +111,7 @@ const Dashboard = () => {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search rooms..."
+                placeholder="Buscar salas..."
                 className="w-full rounded-lg border border-input bg-input-background py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary sm:w-64"
               />
             </label>
@@ -121,7 +121,7 @@ const Dashboard = () => {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <Plus className="h-4 w-4" />
-              Create Room
+              Crear sala
             </button>
           </div>
         </div>
@@ -157,7 +157,7 @@ const Dashboard = () => {
                       <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">Active</span>
                     </div>
                     <p className="mb-4 line-clamp-2 min-h-10 text-sm text-muted-foreground">
-                      {room.description || "Private study room"}
+                      {room.description || "Sala de estudio privada"}
                     </p>
                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
@@ -171,7 +171,7 @@ const Dashboard = () => {
                     </div>
                     <div className="mt-4 border-t border-border pt-4">
                       <span className="block rounded-lg bg-primary/10 py-2 text-center text-sm font-medium text-primary transition-colors group-hover:bg-primary/20">
-                        Join Room
+                        Entrar a la sala
                       </span>
                     </div>
                   </Link>
@@ -182,9 +182,9 @@ const Dashboard = () => {
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Plus className="h-6 w-6" />
                 </div>
-                <h2 className="text-lg font-semibold text-card-foreground">No study rooms yet</h2>
+                <h2 className="text-lg font-semibold text-card-foreground">Aun no tienes salas</h2>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                  Create your first room to generate a Firestore record and show the filled dashboard state.
+                  Crea tu primera sala para guardar el registro en Firestore y ver el dashboard con datos reales.
                 </p>
                 <button
                   type="button"
@@ -192,7 +192,7 @@ const Dashboard = () => {
                   className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <Plus className="h-4 w-4" />
-                  Create Room
+                  Crear sala
                 </button>
               </div>
             )}
@@ -202,7 +202,7 @@ const Dashboard = () => {
             <div className="rounded-xl border border-border bg-card p-5">
               <h2 className="mb-4 flex items-center gap-2 font-semibold text-card-foreground">
                 <Users className="h-5 w-5 text-primary" />
-                Online Users
+                Usuarios en linea
                 <span className="ml-auto text-sm text-muted-foreground">{onlineUsers.length}</span>
               </h2>
               <div className="space-y-3">
@@ -222,11 +222,11 @@ const Dashboard = () => {
             </div>
 
             <div className="rounded-xl border border-border bg-card p-5">
-              <h2 className="mb-4 font-semibold text-card-foreground">Your Activity</h2>
+              <h2 className="mb-4 font-semibold text-card-foreground">Tu actividad</h2>
               <div className="space-y-4">
-                <StatItem label="Rooms Created" value={String(rooms.length)} />
-                <StatItem label="Study Hours This Week" value={`${profile?.studyHours ?? 0} hrs`} />
-                <StatItem label="Sessions Joined" value={String(profile?.sessionsJoined ?? 0)} />
+                <StatItem label="Salas creadas" value={String(rooms.length)} />
+                <StatItem label="Horas de estudio esta semana" value={`${profile?.studyHours ?? 0} hrs`} />
+                <StatItem label="Sesiones realizadas" value={String(profile?.sessionsJoined ?? 0)} />
               </div>
             </div>
           </aside>
@@ -244,34 +244,34 @@ const Dashboard = () => {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 id="create-room-title" className="text-xl font-semibold text-card-foreground">
-                  Create study room
+                  Crear sala de estudio
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">This will save a new room in Firestore.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Esto guardara una nueva sala en Firestore.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateRoom(false)}
                 className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
-                aria-label="Close create room dialog"
+                aria-label="Cerrar dialogo de crear sala"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateRoom} className="space-y-4">
-              <TextField name="name" label="Room name" placeholder="Data Structures Review" />
-              <TextField name="subject" label="Subject" placeholder="Computer Science" />
+              <TextField name="name" label="Nombre de la sala" placeholder="Repaso de estructuras de datos" />
+              <TextField name="subject" label="Materia" placeholder="Ciencias de la computacion" />
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-card-foreground">Description</span>
+                <span className="mb-2 block text-sm font-medium text-card-foreground">Descripcion</span>
                 <textarea
                   name="description"
                   rows={3}
-                  placeholder="Short goal for this room"
+                  placeholder="Objetivo breve de esta sala"
                   className="w-full resize-none rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </label>
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-card-foreground">Max participants</span>
+                <span className="mb-2 block text-sm font-medium text-card-foreground">Maximo de participantes</span>
                 <input
                   name="maxParticipants"
                   type="number"
@@ -287,7 +287,7 @@ const Dashboard = () => {
                   onClick={() => setShowCreateRoom(false)}
                   className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  Cancel
+                  Cancelar
                 </button>
                 <button
                   type="submit"
@@ -295,7 +295,7 @@ const Dashboard = () => {
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
-                  {savingRoom ? "Creating..." : "Create Room"}
+                  {savingRoom ? "Creando..." : "Crear sala"}
                 </button>
               </div>
             </form>

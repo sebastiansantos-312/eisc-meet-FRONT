@@ -23,18 +23,18 @@ import useAuthStore from "../../stores/useAuthStore";
 import type { StudyRoom } from "../../types/room.types";
 
 const participants = [
-  { id: "1", name: "You", avatar: "YO", isMuted: false, isVideoOff: false, isSpeaking: true },
+  { id: "1", name: "Tu", avatar: "TU", isMuted: false, isVideoOff: false, isSpeaking: true },
   { id: "2", name: "Alex Chen", avatar: "AC", isMuted: false, isVideoOff: false, isSpeaking: false },
-  { id: "3", name: "Sarah Johnson", avatar: "SJ", isMuted: true, isVideoOff: false, isSpeaking: false },
-  { id: "4", name: "Michael Brown", avatar: "MB", isMuted: false, isVideoOff: true, isSpeaking: false },
-  { id: "5", name: "Emily Davis", avatar: "ED", isMuted: false, isVideoOff: false, isSpeaking: false },
+  { id: "3", name: "Sara Gomez", avatar: "SG", isMuted: true, isVideoOff: false, isSpeaking: false },
+  { id: "4", name: "Miguel Ruiz", avatar: "MR", isMuted: false, isVideoOff: true, isSpeaking: false },
+  { id: "5", name: "Emilia Diaz", avatar: "ED", isMuted: false, isVideoOff: false, isSpeaking: false },
 ];
 
 const chatMessages = [
-  { id: "1", sender: "Alex Chen", message: "Hey everyone! Ready to tackle this problem set?", time: "2:30 PM" },
-  { id: "2", sender: "Sarah Johnson", message: "Yes! Let's start with question 3, it's tricky", time: "2:31 PM" },
-  { id: "3", sender: "You", message: "Agreed, I'm stuck on that one too", time: "2:32 PM" },
-  { id: "4", sender: "Michael Brown", message: "I think I figured it out, let me share my screen", time: "2:33 PM" },
+  { id: "1", sender: "Alex Chen", message: "Hola a todos! Listos para resolver esta guia?", time: "2:30 PM" },
+  { id: "2", sender: "Sara Gomez", message: "Si! Empecemos por la pregunta 3, esta dificil.", time: "2:31 PM" },
+  { id: "3", sender: "Tu", message: "De acuerdo, tambien estoy atascado ahi.", time: "2:32 PM" },
+  { id: "4", sender: "Miguel Ruiz", message: "Creo que ya lo entendi, voy a compartir pantalla.", time: "2:33 PM" },
 ];
 
 const Room = () => {
@@ -108,22 +108,22 @@ const Room = () => {
           <Link
             to="/dashboard"
             className="rounded-lg p-2 text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Back to dashboard"
+            aria-label="Volver al inicio"
           >
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <div>
             <h1 className="text-lg font-semibold text-card-foreground sm:text-xl">
-              {roomLoading ? "Loading room..." : room?.name ?? "Study room"}
+              {roomLoading ? "Cargando sala..." : room?.name ?? "Sala de estudio"}
             </h1>
-            <p className="text-xs text-muted-foreground">Room ID: {roomId ?? "general"}</p>
+            <p className="text-xs text-muted-foreground">ID de sala: {roomId ?? "general"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Room settings">
+          <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Configuracion de la sala">
             <Settings className="h-5 w-5" />
           </button>
-          <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="More options">
+          <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Mas opciones">
             <MoreVertical className="h-5 w-5" />
           </button>
         </div>
@@ -160,37 +160,37 @@ const Room = () => {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="h-5 w-5" />
-            <span>{participants.length} participants</span>
+            <span>{participants.length} participantes</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             <ControlButton
               icon={isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-              label={isMuted ? "Unmute" : "Mute"}
+              label={isMuted ? "Activar microfono" : "Silenciar"}
               active={!isMuted}
               onClick={() => setIsMuted((current) => !current)}
             />
             <ControlButton
               icon={isVideoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
-              label={isVideoOff ? "Start Video" : "Stop Video"}
+              label={isVideoOff ? "Activar camara" : "Apagar camara"}
               active={!isVideoOff}
               onClick={() => setIsVideoOff((current) => !current)}
             />
             <ControlButton
               icon={isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
-              label={isScreenSharing ? "Stop Sharing" : "Share Screen"}
+              label={isScreenSharing ? "Dejar de compartir" : "Compartir pantalla"}
               active={isScreenSharing}
               onClick={() => setIsScreenSharing((current) => !current)}
             />
             {!showChat ? (
-              <ControlButton icon={<MessageSquare className="h-5 w-5" />} label="Chat" onClick={() => setShowChat(true)} />
+              <ControlButton icon={<MessageSquare className="h-5 w-5" />} label="Mensajes" onClick={() => setShowChat(true)} />
             ) : null}
             <Link
               to="/dashboard"
               className="inline-flex min-h-16 items-center gap-2 rounded-xl bg-red-400 px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300"
             >
               <PhoneOff className="h-5 w-5" />
-              Leave
+              Salir
             </Link>
           </div>
 
@@ -239,9 +239,9 @@ const ChatPanel = ({ compact, onClose }: { compact?: boolean; onClose: () => voi
       <div className="flex items-center justify-between border-b border-border p-4">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold text-card-foreground">Chat</h2>
+          <h2 className="font-semibold text-card-foreground">Mensajes</h2>
         </div>
-        <button onClick={onClose} className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Close chat">
+        <button onClick={onClose} className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Cerrar chat">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -256,10 +256,10 @@ const ChatPanel = ({ compact, onClose }: { compact?: boolean; onClose: () => voi
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="Type a message..."
+            placeholder="Escribe un mensaje..."
             className="min-w-0 flex-1 rounded-lg border border-input bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          <button className="rounded-lg bg-primary p-2 text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Send message">
+          <button className="rounded-lg bg-primary p-2 text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Enviar mensaje">
             <Send className="h-5 w-5" />
           </button>
         </div>
@@ -286,7 +286,7 @@ const ControlButton = ({ icon, label, active, onClick }: { icon: ReactNode; labe
 };
 
 const ChatMessage = ({ sender, message, time }: { sender: string; message: string; time: string }) => {
-  const isYou = sender === "You";
+  const isYou = sender === "Tu";
 
   return (
     <div className={`flex flex-col ${isYou ? "items-end" : "items-start"}`}>
