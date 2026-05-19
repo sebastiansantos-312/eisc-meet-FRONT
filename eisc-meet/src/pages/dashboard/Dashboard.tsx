@@ -68,13 +68,14 @@ const Dashboard = () => {
 
   const handleCreateRoom = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const form = event.currentTarget;
 
     if (!authUser?.uid) {
       setError("Debes iniciar sesion para crear una sala.");
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const name = String(formData.get("name") ?? "");
     const subject = String(formData.get("subject") ?? "");
     const description = String(formData.get("description") ?? "");
@@ -93,7 +94,7 @@ const Dashboard = () => {
       });
       setRooms((current) => [room, ...current]);
       setShowCreateRoom(false);
-      event.currentTarget.reset();
+      form.reset();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "No se pudo crear la sala.");
     } finally {
