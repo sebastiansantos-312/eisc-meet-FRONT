@@ -30,7 +30,35 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.participantIds.size() == 1
         && request.resource.data.participantIds[0] == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow update: if signedIn() && (
+        resource.data.ownerId == request.auth.uid
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["participantIds", "updatedAt"])
+          && !(request.auth.uid in resource.data.participantIds)
+          && request.auth.uid in request.resource.data.participantIds
+          && request.resource.data.participantIds.hasAll(resource.data.participantIds)
+          && request.resource.data.participantIds.size() == resource.data.participantIds.size() + 1
+          && request.resource.data.participantIds.size() <= resource.data.maxParticipants
+        )
+      );
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /participants/{uid} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && uid == request.auth.uid
+          && request.resource.data.uid == request.auth.uid
+          && request.auth.uid in getAfter(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds
+          && (
+            request.resource.data.role == "member"
+            || (
+              request.resource.data.role == "owner"
+              && getAfter(/databases/$(database)/documents/rooms/$(roomId)).data.ownerId == request.auth.uid
+            )
+          );
+        allow update, delete: if signedIn()
+          && get(/databases/$(database)/documents/rooms/$(roomId)).data.ownerId == request.auth.uid;
+      }
     }
   }
 }

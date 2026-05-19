@@ -1,7 +1,9 @@
 export type RoomStatus = "active" | "scheduled";
+export type ParticipantRole = "owner" | "member";
 
 export type StudyRoom = {
   id: string;
+  roomCode: string;
   ownerId: string;
   name: string;
   subject: string;
@@ -19,4 +21,10 @@ export type CreateRoomPayload = {
   subject: string;
   description: string;
   maxParticipants: number;
+};
+
+export type RoomParticipant = {
+  uid: string;
+  role: ParticipantRole;
+  joinedAt?: string;
 };

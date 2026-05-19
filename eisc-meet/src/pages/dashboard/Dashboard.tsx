@@ -1,9 +1,9 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Circle, Clock, Plus, Search, Users, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Circle, Clock, LogIn, Plus, Search, Users, X } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell";
-import { createRoom, listRoomsByOwner } from "../../repositories/room.repository";
+import { createRoom, joinRoom, listRoomsByParticipant } from "../../repositories/room.repository";
 import useAuthStore from "../../stores/useAuthStore";
 import type { StudyRoom } from "../../types/room.types";
 
@@ -12,14 +12,21 @@ const onlineUsers = [
 ];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.authUser);
   const profile = useAuthStore((state) => state.profile);
   const [rooms, setRooms] = useState<StudyRoom[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [savingRoom, setSavingRoom] = useState(false);
+  const [joiningRoom, setJoiningRoom] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [query, setQuery] = useState("");
+  const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const ownRooms = useMemo(() => {
+    return rooms.filter((room) => room.ownerId === authUser?.uid);
+  }, [authUser?.uid, rooms]);
 
   const filteredRooms = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -27,7 +34,7 @@ const Dashboard = () => {
     if (!normalizedQuery) return rooms;
 
     return rooms.filter((room) => {
-      return [room.name, room.subject, room.description].some((value) =>
+      return [room.name, room.subject, room.description, room.roomCode].some((value) =>
         value.toLowerCase().includes(normalizedQuery),
       );
     });
@@ -43,7 +50,7 @@ const Dashboard = () => {
       setError(null);
 
       try {
-        const nextRooms = await listRoomsByOwner(authUser.uid);
+        const nextRooms = await listRoomsByParticipant(authUser.uid);
         if (active) setRooms(nextRooms);
       } catch {
         if (active) setError("No se pudieron cargar tus salas.");
@@ -94,6 +101,32 @@ const Dashboard = () => {
     }
   };
 
+  const handleJoinRoom = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!authUser?.uid) {
+      setError("Debes iniciar sesion para unirte a una sala.");
+      return;
+    }
+
+    setJoiningRoom(true);
+    setError(null);
+
+    try {
+      const room = await joinRoom(joinCode, authUser.uid);
+      setRooms((current) => {
+        const withoutDuplicate = current.filter((currentRoom) => currentRoom.id !== room.id);
+        return [room, ...withoutDuplicate];
+      });
+      setJoinCode("");
+      navigate(`/room/${room.id}`);
+    } catch (joinError) {
+      setError(joinError instanceof Error ? joinError.message : "No se pudo entrar a la sala.");
+    } finally {
+      setJoiningRoom(false);
+    }
+  };
+
   return (
     <DashboardShell>
       <header className="border-b border-border bg-card px-4 py-5 sm:px-6">
@@ -105,6 +138,26 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <form onSubmit={handleJoinRoom} className="flex min-w-0 gap-2">
+              <label className="min-w-0 flex-1 sm:w-44">
+                <span className="sr-only">ID o codigo de sala</span>
+                <input
+                  type="text"
+                  value={joinCode}
+                  onChange={(event) => setJoinCode(event.target.value)}
+                  placeholder="ID o codigo"
+                  className="w-full rounded-lg border border-input bg-input-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={joiningRoom || !joinCode.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <LogIn className="h-4 w-4" />
+                {joiningRoom ? "Entrando..." : "Unirse"}
+              </button>
+            </form>
             <label className="relative block">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -154,7 +207,9 @@ const Dashboard = () => {
                         <h2 className="font-semibold text-card-foreground transition-colors group-hover:text-primary">{room.name}</h2>
                         <p className="text-xs text-muted-foreground">{room.subject}</p>
                       </div>
-                      <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">Active</span>
+                      <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">
+                        {room.ownerId === authUser?.uid ? "Admin" : "Invitado"}
+                      </span>
                     </div>
                     <p className="mb-4 line-clamp-2 min-h-10 text-sm text-muted-foreground">
                       {room.description || "Sala de estudio privada"}
@@ -167,6 +222,9 @@ const Dashboard = () => {
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="h-4 w-4" />
                         {room.createdAt ? new Date(room.createdAt).toLocaleDateString() : "New"}
+                      </span>
+                      <span className="rounded bg-accent px-2 py-1 font-mono text-xs text-accent-foreground">
+                        {room.roomCode}
                       </span>
                     </div>
                     <div className="mt-4 border-t border-border pt-4">
@@ -184,7 +242,7 @@ const Dashboard = () => {
                 </div>
                 <h2 className="text-lg font-semibold text-card-foreground">Aun no tienes salas</h2>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                  Crea tu primera sala para guardar el registro en Firestore y ver el dashboard con datos reales.
+                  Crea tu primera sala o entra a una existente con su ID o codigo.
                 </p>
                 <button
                   type="button"
@@ -224,7 +282,8 @@ const Dashboard = () => {
             <div className="rounded-xl border border-border bg-card p-5">
               <h2 className="mb-4 font-semibold text-card-foreground">Tu actividad</h2>
               <div className="space-y-4">
-                <StatItem label="Salas creadas" value={String(rooms.length)} />
+                <StatItem label="Salas creadas" value={String(ownRooms.length)} />
+                <StatItem label="Salas como invitado" value={String(Math.max(rooms.length - ownRooms.length, 0))} />
                 <StatItem label="Horas de estudio esta semana" value={`${profile?.studyHours ?? 0} hrs`} />
                 <StatItem label="Sesiones realizadas" value={String(profile?.sessionsJoined ?? 0)} />
               </div>
