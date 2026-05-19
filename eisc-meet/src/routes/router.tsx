@@ -5,14 +5,17 @@ import Register from '../pages/register/Register'
 import Dashboard from '../pages/dashboard/Dashboard'
 import Room from '../pages/room/Room'
 import Profile from '../pages/profile/Profile'
+import CompleteProfile from '../pages/complete-profile/CompleteProfile'
 import NotFound from '../pages/not-found/NotFound'
+import ProtectedRoute from '../components/ProtectedRoute'
 
 export const router = createBrowserRouter([
   { path: '/',             element: <Home /> },
   { path: '/login',        element: <Login /> },
   { path: '/register',     element: <Register /> },
-  { path: '/dashboard',    element: <Dashboard /> },
-  { path: '/room/:roomId', element: <Room /> },
-  { path: '/profile',      element: <Profile /> },
+  { path: '/complete-profile', element: <ProtectedRoute requireCompleteProfile={false}><CompleteProfile /></ProtectedRoute> },
+  { path: '/dashboard',    element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
+  { path: '/room/:roomId', element: <ProtectedRoute><Room /></ProtectedRoute> },
+  { path: '/profile',      element: <ProtectedRoute><Profile /></ProtectedRoute> },
   { path: '*',             element: <NotFound /> },
 ])

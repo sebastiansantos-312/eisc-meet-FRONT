@@ -4,10 +4,10 @@
 			"path": "eisc-meet"
 		},
 		{
-			"path": "../BACK/Backend_tiempo_real/eisc-chat"
+			"path": "../BACK/Backend_tiempo_real/eisc-real-time"
 		},
 		{
-			"path": "../BACK/Backend_principal/eisc-video"
+			"path": "../BACK/Backend_principal/eisc-firebase"
 		}
 	],
 	"settings": {}

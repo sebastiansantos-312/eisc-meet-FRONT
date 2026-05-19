@@ -1,71 +1,95 @@
 @import "tailwindcss";
 
-@theme {
-  --font-poppins: Poppins, sans-serif;
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #fafafa;
+  --foreground: #1f1f1f;
+  --card: #ffffff;
+  --card-foreground: #1f1f1f;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: #8b5cf6;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #eef2ff;
+  --accent-foreground: #4338ca;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --input-background: #ffffff;
+  --ring: #6366f1;
+  --sidebar: #16162a;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-accent: #2e2e48;
+  --sidebar-accent-foreground: #c4b5fd;
+  --sidebar-border: #27273a;
+  --radius: 0.75rem;
 }
 
-body {
-  @apply font-poppins;
+.dark,
+:root {
+  --background: #0f0f1a;
+  --foreground: #f5f5f7;
+  --card: #1a1a2e;
+  --card-foreground: #f5f5f7;
+  --primary: #818cf8;
+  --primary-foreground: #0f0f1a;
+  --secondary: #a78bfa;
+  --muted: #27273a;
+  --muted-foreground: #a1a1aa;
+  --accent: #2e2e48;
+  --accent-foreground: #c4b5fd;
+  --border: #27273a;
+  --input: #27273a;
+  --input-background: #16162a;
+  --ring: #818cf8;
 }
 
-.container-page > div:not(:has(form)) {
-  @apply h-lvh flex flex-col gap-4 justify-center items-center;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
 }
 
-a {
-  @apply text-white hover:underline text-lg;
-}
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 
-nav {
-  @apply fixed w-full;
-}
+  html {
+    @apply bg-background;
+  }
 
-nav,
-footer {
-  @apply flex gap-8 bg-purple-900 justify-center p-4 text-lg;
-}
+  body {
+    @apply m-0 min-h-screen bg-background text-foreground antialiased;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
 
-button {
-  @apply bg-purple-700 text-white py-2 p-2 rounded hover:bg-purple-800 w-48 text-lg cursor-pointer;
-}
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 
-h1 {
-  @apply text-3xl font-bold text-center mb-12;
-  @apply bg-gradient-to-r from-violet-600 to-purple-600;
-  @apply bg-clip-text text-transparent;
-}
-
-h2 {
-  @apply text-2xl font-bold text-center mb-12;
-  @apply bg-gradient-to-r from-violet-300 to-purple-300;
-  @apply bg-clip-text text-transparent;
-}
-
-.container-page {
-  @apply min-h-screen flex items-center justify-center p-4;
-  @apply bg-gradient-to-br from-violet-50 to-purple-50 dark:from-gray-900 dark:to-gray-800;
-}
-
-.container-page > div {
-  @apply bg-white dark:bg-gray-800 rounded-xl shadow-lg;
-  @apply p-8 border border-gray-200 dark:border-gray-700;
-  @apply w-full max-w-md;
-  @apply transition-all duration-200 hover:shadow-xl;
-}
-
-.container-page label {
-  @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
-}
-
-.container-page > div > div:last-child > button {
-  @apply w-full mt-1 flex items-center justify-center gap-3;
-  @apply bg-violet-600 hover:bg-violet-700 active:bg-violet-800;
-  @apply text-white shadow-lg hover:shadow-xl;
-  @apply transition-all duration-200 ease-in-out;
-  @apply transform hover:scale-105 active:scale-95;
-  @apply focus:outline-none focus:ring-4 focus:ring-violet-300 focus:ring-offset-2;
-}
-
-.container-page > div > div:last-child > button img {
-  @apply w-6 h-6;
+  a {
+    @apply text-inherit no-underline;
+  }
 }
