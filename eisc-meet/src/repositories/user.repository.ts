@@ -1,10 +1,6 @@
 import type { User } from "firebase/auth";
-import { deleteDoc, doc, getDoc, runTransaction, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "../services/firebase/firebase.config";
+import { apiFetchJson } from "../lib/apiClient";
 import { buildInitialUserData, isValidUsername, normalizeUsername, type UserData } from "../types/user.types";
-
-const usersCollection = "users";
-const usernamesCollection = "usernames";
 
 export type InitialUserExtras = Partial<
   Pick<
@@ -26,21 +22,26 @@ export type InitialUserExtras = Partial<
   >
 >;
 
-const userDocRef = (uid: string) => doc(db, usersCollection, uid);
-const usernameDocRef = (username: string) => doc(db, usernamesCollection, normalizeUsername(username));
-
 export const getUsernameOwner = async (username: string): Promise<string | null> => {
-  const snapshot = await getDoc(usernameDocRef(username));
-  return snapshot.exists() ? String(snapshot.data().uid) : null;
+  const result = await apiFetchJson<{ available: boolean }>("/api/users/check-username", {
+    method: "POST",
+    body: JSON.stringify({ username: normalizeUsername(username) }),
+  });
+
+  return result.available ? null : "reserved";
 };
 
-export const isUsernameAvailable = async (username: string, currentUid?: string): Promise<boolean> => {
+export const isUsernameAvailable = async (username: string, _currentUid?: string): Promise<boolean> => {
   if (!isValidUsername(username)) {
     return false;
   }
 
-  const ownerUid = await getUsernameOwner(username);
-  return !ownerUid || ownerUid === currentUid;
+  const result = await apiFetchJson<{ available: boolean }>("/api/users/check-username", {
+    method: "POST",
+    body: JSON.stringify({ username: normalizeUsername(username) }),
+  });
+
+  return result.available;
 };
 
 const assertValidUsername = (username: string) => {
@@ -49,14 +50,16 @@ const assertValidUsername = (username: string) => {
   }
 };
 
-export const getUserProfile = async (uid: string): Promise<UserData | null> => {
-  const snapshot = await getDoc(userDocRef(uid));
+export const getUserProfile = async (_uid?: string): Promise<UserData | null> => {
+  try {
+    return await apiFetchJson<UserData>("/api/users/me");
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Perfil no encontrado")) {
+      return null;
+    }
 
-  if (!snapshot.exists()) {
-    return null;
+    throw error;
   }
-
-  return snapshot.data() as UserData;
 };
 
 export const createInitialUserProfile = async (
@@ -98,105 +101,32 @@ export const createInitialUserProfile = async (
     delete profile.username;
   }
 
-  if (!normalizedUsername) {
-    await setDoc(userDocRef(authUser.uid), profile, { merge: true });
-    return profile;
-  }
-
-  await runTransaction(db, async (transaction) => {
-    const usernameRef = usernameDocRef(normalizedUsername);
-    const usernameSnapshot = await transaction.get(usernameRef);
-
-    if (usernameSnapshot.exists() && usernameSnapshot.data().uid !== authUser.uid) {
-      throw new Error("Este username ya esta en uso.");
-    }
-
-    transaction.set(userDocRef(authUser.uid), profile, { merge: true });
-    transaction.set(usernameRef, {
-      uid: authUser.uid,
-      username: normalizedUsername,
-      createdAt: now,
-    });
+  return apiFetchJson<UserData>("/api/users/me", {
+    method: "PUT",
+    body: JSON.stringify(profile),
   });
-
-  return profile;
 };
 
 export const upsertUserProfile = async (profile: UserData): Promise<UserData> => {
-  const nextProfile = {
-    ...profile,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await setDoc(userDocRef(profile.uid), nextProfile, { merge: true });
-  return nextProfile;
+  return apiFetchJson<UserData>("/api/users/me", {
+    method: "PUT",
+    body: JSON.stringify(profile),
+  });
 };
 
 export const updateUserProfile = async (
-  uid: string,
+  _uid: string,
   data: Partial<Omit<UserData, "uid" | "createdAt">>,
 ): Promise<UserData> => {
-  const currentProfile = await getUserProfile(uid);
-
-  if (!currentProfile) {
-    throw new Error("No se pudo cargar el perfil actual.");
-  }
-
-  if (data.username && normalizeUsername(data.username) !== currentProfile.username) {
-    const now = new Date().toISOString();
-    const nextUsername = normalizeUsername(data.username);
-    assertValidUsername(nextUsername);
-
-    const payload = {
-      ...data,
-      username: nextUsername,
-      profileCompleted: true,
-      updatedAt: now,
-    };
-
-    await runTransaction(db, async (transaction) => {
-      const nextUsernameRef = usernameDocRef(nextUsername);
-      const nextUsernameSnapshot = await transaction.get(nextUsernameRef);
-
-      if (nextUsernameSnapshot.exists() && nextUsernameSnapshot.data().uid !== uid) {
-        throw new Error("Este username ya esta en uso.");
-      }
-
-      if (currentProfile.username && currentProfile.username !== nextUsername) {
-        transaction.delete(usernameDocRef(currentProfile.username));
-      }
-
-      transaction.set(nextUsernameRef, {
-        uid,
-        username: nextUsername,
-        createdAt: now,
-      });
-      transaction.update(userDocRef(uid), payload);
-    });
-
-    const updatedProfile = await getUserProfile(uid);
-
-    if (!updatedProfile) {
-      throw new Error("No se pudo cargar el perfil actualizado.");
-    }
-
-    return updatedProfile;
-  }
-
   const payload = {
     ...data,
-    updatedAt: new Date().toISOString(),
+    ...(data.username ? { username: normalizeUsername(data.username) } : {}),
   };
 
-  await updateDoc(userDocRef(uid), payload);
-
-  const updatedProfile = await getUserProfile(uid);
-
-  if (!updatedProfile) {
-    throw new Error("No se pudo cargar el perfil actualizado.");
-  }
-
-  return updatedProfile;
+  return apiFetchJson<UserData>("/api/users/me", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 };
 
 export const completeUserProfile = async (
@@ -214,12 +144,8 @@ export const completeUserProfile = async (
   });
 };
 
-export const deleteUserProfile = async (uid: string): Promise<void> => {
-  const profile = await getUserProfile(uid);
-
-  if (profile?.username) {
-    await deleteDoc(usernameDocRef(profile.username));
-  }
-
-  await deleteDoc(userDocRef(uid));
+export const deleteUserProfile = async (_uid?: string): Promise<void> => {
+  await apiFetchJson<{ ok: boolean }>("/api/users/me", {
+    method: "DELETE",
+  });
 };

@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { socket } from "../sockets/socketManager";
+import { connectSocket, socket } from "../sockets/socketManager";
 import useAuthStore from "../stores/useAuthStore";
 
 const AuthBootstrap = ({ children }: { children: ReactNode }) => {
@@ -13,10 +13,9 @@ const AuthBootstrap = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (authUser?.uid) {
-      if (!socket.connected) {
-        socket.connect();
-      }
-      socket.emit("newUser", authUser.uid);
+      connectSocket().then((connected) => {
+        if (connected) socket.emit("newUser");
+      });
       return;
     }
 

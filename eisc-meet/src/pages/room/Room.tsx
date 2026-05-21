@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { getRoomById } from "../../repositories/room.repository";
-import { socket } from "../../sockets/socketManager";
+import { connectSocket, socket } from "../../sockets/socketManager";
 import useAuthStore from "../../stores/useAuthStore";
 import type { StudyRoom } from "../../types/room.types";
 
@@ -90,14 +90,12 @@ const Room = () => {
   useEffect(() => {
     if (!roomId || !authUser?.uid) return;
 
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    socket.emit("room:join", { roomId, userId: authUser.uid });
+    connectSocket().then((connected) => {
+      if (connected) socket.emit("room:join", { roomId });
+    });
 
     return () => {
-      socket.emit("room:leave", { roomId, userId: authUser.uid });
+      socket.emit("room:leave", { roomId });
     };
   }, [authUser?.uid, roomId]);
 

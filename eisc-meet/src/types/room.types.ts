@@ -1,4 +1,4 @@
-export type RoomStatus = "active" | "scheduled";
+export type RoomStatus = "active" | "scheduled" | "closed";
 export type ParticipantRole = "owner" | "member";
 
 export type StudyRoom = {

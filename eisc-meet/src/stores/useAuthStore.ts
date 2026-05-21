@@ -68,6 +68,9 @@ const authErrorMessage = (error: unknown) => {
   const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 
   if (error instanceof Error && error.message.includes("Google")) return error.message;
+  if (error instanceof Error && error.message.includes("Failed to fetch")) {
+    return "No se pudo conectar con el backend principal. Verifica que eisc-firebase este corriendo.";
+  }
   if (code.includes("email-already-in-use")) return "Este correo ya tiene una cuenta.";
   if (code.includes("invalid-email")) return "El correo no tiene un formato valido.";
   if (code.includes("wrong-password") || code.includes("invalid-credential")) return "Correo o contrasena incorrectos.";
@@ -80,6 +83,7 @@ const authErrorMessage = (error: unknown) => {
   }
   if (error instanceof Error && error.message.includes("username")) return error.message;
   if (error instanceof Error && error.message.includes("uso")) return error.message;
+  if (error instanceof Error && error.message) return error.message;
 
   return "No se pudo completar la autenticacion. Intenta de nuevo.";
 };
@@ -214,8 +218,8 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         await reauthenticateWithPopup(authUser, new GoogleAuthProvider());
       }
 
-      await deleteUserProfile(authUser.uid);
-      await deleteUser(authUser);
+      await deleteUserProfile();
+      await signOut(auth);
       set({ authUser: null, profile: null, loading: false, profileLoading: false });
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
