@@ -58,6 +58,17 @@ const Settings = () => {
     root.classList.toggle("a11y-large-text", preferences.largeText);
   }, [preferences.highContrast, preferences.largeText, preferences.reduceMotion]);
 
+  useEffect(() => {
+    if (!showDeleteModal) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowDeleteModal(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [showDeleteModal]);
+
   const enabledCount = useMemo(() => Object.values(preferences).filter(Boolean).length, [preferences]);
 
   const updatePreference = (key: keyof RoomPreferences) => (event: ChangeEvent<HTMLInputElement>) => {

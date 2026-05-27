@@ -82,6 +82,21 @@ const Groups = () => {
   }, [location.pathname, navigate, notice]);
 
   useEffect(() => {
+    if (!showCreateRoom && !editingRoom && !deletingRoom) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      setShowCreateRoom(false);
+      setEditingRoom(null);
+      setDeletingRoom(null);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [deletingRoom, editingRoom, showCreateRoom]);
+
+  useEffect(() => {
     const roomIds = rooms.map((room) => room.id);
 
     if (!authUser?.uid || !roomIds.length) {

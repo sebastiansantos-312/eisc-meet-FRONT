@@ -509,6 +509,21 @@ const Room = () => {
   }, [refreshDevices]);
 
   useEffect(() => {
+    if (!showSettings && !showMoreMenu) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      setShowSettings(false);
+      setShowMoreMenu(false);
+      setOpenDeviceMenu(null);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [showMoreMenu, showSettings]);
+
+  useEffect(() => {
     localStreamRef.current = localStream;
   }, [localStream]);
 

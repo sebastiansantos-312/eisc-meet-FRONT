@@ -120,6 +120,25 @@
     @apply text-inherit no-underline;
   }
 
+  .skip-link {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 9999;
+    transform: translateY(-150%);
+    border-radius: 0.5rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+    outline: 3px solid var(--ring);
+    outline-offset: 3px;
+  }
+
   .a11y-reduce-motion *,
   .a11y-reduce-motion *::before,
   .a11y-reduce-motion *::after {
