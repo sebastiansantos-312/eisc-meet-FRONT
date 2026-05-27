@@ -32,6 +32,7 @@ export const getUsernameOwner = async (username: string): Promise<string | null>
 };
 
 export const isUsernameAvailable = async (username: string, _currentUid?: string): Promise<boolean> => {
+  void _currentUid;
   if (!isValidUsername(username)) {
     return false;
   }
@@ -51,6 +52,7 @@ const assertValidUsername = (username: string) => {
 };
 
 export const getUserProfile = async (_uid?: string): Promise<UserData | null> => {
+  void _uid;
   try {
     return await apiFetchJson<UserData>("/api/users/me");
   } catch (error) {
@@ -118,6 +120,7 @@ export const updateUserProfile = async (
   _uid: string,
   data: Partial<Omit<UserData, "uid" | "createdAt">>,
 ): Promise<UserData> => {
+  void _uid;
   const payload = {
     ...data,
     ...(data.username ? { username: normalizeUsername(data.username) } : {}),
@@ -145,6 +148,7 @@ export const completeUserProfile = async (
 };
 
 export const deleteUserProfile = async (_uid?: string): Promise<void> => {
+  void _uid;
   await apiFetchJson<{ ok: boolean }>("/api/users/me", {
     method: "DELETE",
   });

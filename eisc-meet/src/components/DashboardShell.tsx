@@ -16,14 +16,14 @@ type NavItemProps = {
 
 const navItems = [
   { to: "/dashboard", icon: <Home className="h-5 w-5" />, label: "Inicio" },
-  { to: "/room/general", icon: <Calendar className="h-5 w-5" />, label: "Sesiones" },
-  { to: "/dashboard", icon: <Users className="h-5 w-5" />, label: "Grupos de estudio" },
+  { to: "/sessions", icon: <Calendar className="h-5 w-5" />, label: "Sesiones" },
+  { to: "/groups", icon: <Users className="h-5 w-5" />, label: "Grupos de estudio" },
   { to: "/profile", icon: <User className="h-5 w-5" />, label: "Perfil" },
 ];
 
 const secondaryItems = [
-  { to: "/profile", icon: <Settings className="h-5 w-5" />, label: "Configuracion" },
-  { to: "/dashboard", icon: <Bell className="h-5 w-5" />, label: "Notificaciones", badge: 3 },
+  { to: "/settings", icon: <Settings className="h-5 w-5" />, label: "Configuracion" },
+  { to: "/notifications", icon: <Bell className="h-5 w-5" />, label: "Notificaciones", badge: 2 },
 ];
 
 const DashboardShell = ({ children }: DashboardShellProps) => {

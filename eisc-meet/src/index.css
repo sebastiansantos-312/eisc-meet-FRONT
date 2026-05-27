@@ -26,6 +26,33 @@
   --radius: 0.75rem;
 }
 
+:root.a11y-high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #050505;
+  --card-foreground: #ffffff;
+  --primary: #facc15;
+  --primary-foreground: #000000;
+  --secondary: #38bdf8;
+  --muted: #111111;
+  --muted-foreground: #f4f4f5;
+  --accent: #1f2937;
+  --accent-foreground: #ffffff;
+  --border: #ffffff;
+  --input: #ffffff;
+  --input-background: #000000;
+  --ring: #facc15;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #1f2937;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ffffff;
+}
+
+:root.a11y-large-text {
+  font-size: 112.5%;
+}
+
 .dark,
 :root {
   --background: #0f0f1a;
@@ -91,5 +118,14 @@
 
   a {
     @apply text-inherit no-underline;
+  }
+
+  .a11y-reduce-motion *,
+  .a11y-reduce-motion *::before,
+  .a11y-reduce-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
   }
 }

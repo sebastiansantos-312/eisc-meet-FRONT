@@ -35,6 +35,7 @@ export const listRoomsByOwner = async (ownerId: string): Promise<StudyRoom[]> =>
 };
 
 export const listRoomsByParticipant = async (_uid: string): Promise<StudyRoom[]> => {
+  void _uid;
   const rooms = await apiFetchJson<StudyRoom[]>("/api/rooms");
   return sortRooms(rooms);
 };
@@ -50,6 +51,7 @@ export const findRoomByIdOrCode = async (roomIdOrCode: string): Promise<StudyRoo
 };
 
 export const joinRoom = async (roomIdOrCode: string, _uid: string): Promise<StudyRoom> => {
+  void _uid;
   const normalizedValue = roomIdOrCode.trim();
 
   if (!normalizedValue) {
