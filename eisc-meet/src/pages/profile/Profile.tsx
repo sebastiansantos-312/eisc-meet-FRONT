@@ -1,5 +1,5 @@
-import type { FormEvent, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Award, BookOpen, Calendar, Camera, Clock, Mail, Trash2, User, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardShell from "../../components/DashboardShell";
@@ -11,6 +11,7 @@ type ProfileForm = {
   lastName: string;
   username: string;
   email: string;
+  photoURL: string;
   bio: string;
   university: string;
   major: string;
@@ -26,6 +27,7 @@ const emptyForm: ProfileForm = {
   lastName: "",
   username: "",
   email: "",
+  photoURL: "",
   bio: "",
   university: "",
   major: "",
@@ -41,7 +43,9 @@ const Profile = () => {
   const { authUser, profile, profileLoading, loading, error, updateProfile, deleteAccount, clearError } = useAuthStore();
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [status, setStatus] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -54,6 +58,7 @@ const Profile = () => {
       lastName,
       username: profile.username ?? "",
       email: profile.email ?? "",
+      photoURL: profile.photoURL ?? "",
       bio: profile.bio ?? "",
       university: profile.university ?? "",
       major: profile.major ?? "",
@@ -85,6 +90,7 @@ const Profile = () => {
         lastName: form.lastName,
         username: form.username,
         name: joinDisplayName(form.firstName, form.lastName),
+        photoURL: form.photoURL || null,
         bio: form.bio,
         university: form.university,
         major: form.major,
@@ -114,6 +120,40 @@ const Profile = () => {
 
   const updateField = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    setStatus(null);
+    setAvatarError(null);
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Selecciona un archivo de imagen valido.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("La imagen debe pesar maximo 5 MB.");
+      return;
+    }
+
+    try {
+      const photoURL = await imageFileToAvatarDataUrl(file);
+      updateField("photoURL", photoURL);
+      setStatus("Imagen lista. Guarda los cambios para actualizar tu perfil.");
+    } catch {
+      setAvatarError("No se pudo procesar la imagen. Intenta con otra.");
+    }
+  };
+
+  const clearAvatar = () => {
+    setAvatarError(null);
+    updateField("photoURL", "");
+    setStatus("Imagen removida. Guarda los cambios para actualizar tu perfil.");
   };
 
   if (profileLoading && !profile) {
@@ -151,16 +191,47 @@ const Profile = () => {
           <aside className="lg:col-span-1">
             <div className="rounded-xl border border-border bg-card p-6 text-center">
               <div className="relative mb-4 inline-block">
-                {profile?.photoURL ? (
-                  <img src={profile.photoURL} alt={profile.name ?? "Perfil de usuario"} className="h-32 w-32 rounded-full object-cover" />
+                {form.photoURL ? (
+                  <img src={form.photoURL} alt={profile?.name ?? "Perfil de usuario"} className="h-32 w-32 rounded-full object-cover" />
                 ) : (
                   <div className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-secondary/20">
                     <span className="text-4xl font-semibold text-primary">{initials}</span>
                   </div>
                 )}
-                <button type="button" className="absolute bottom-0 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="sr-only"
+                  onChange={handleAvatarChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary"
+                  aria-label="Cambiar imagen de perfil"
+                >
                   <Camera className="h-5 w-5" />
                 </button>
+              </div>
+              <div className="mb-4 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  Cambiar imagen
+                </button>
+                {form.photoURL ? (
+                  <button
+                    type="button"
+                    onClick={clearAvatar}
+                    className="text-sm font-medium text-red-200 transition-colors hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  >
+                    Quitar imagen
+                  </button>
+                ) : null}
+                {avatarError ? <p className="text-sm text-red-200">{avatarError}</p> : null}
               </div>
               <h2 className="text-lg font-semibold text-card-foreground">{profile?.name ?? authUser?.displayName ?? "Estudiante EISC"}</h2>
               <p className="mb-4 text-sm text-muted-foreground">{profile?.major || "Estudiante"}</p>
@@ -377,5 +448,40 @@ const StatRow = ({ icon, label, value }: { icon: ReactNode; label: string; value
     <span className="font-semibold text-card-foreground">{value}</span>
   </div>
 );
+
+const imageFileToAvatarDataUrl = (file: File) => {
+  return new Promise<string>((resolve, reject) => {
+    const image = new Image();
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("READ_FAILED"));
+    reader.onload = () => {
+      image.src = String(reader.result ?? "");
+    };
+
+    image.onerror = () => reject(new Error("IMAGE_FAILED"));
+    image.onload = () => {
+      const size = 320;
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        reject(new Error("CANVAS_FAILED"));
+        return;
+      }
+
+      const sourceSize = Math.min(image.naturalWidth, image.naturalHeight);
+      const sourceX = (image.naturalWidth - sourceSize) / 2;
+      const sourceY = (image.naturalHeight - sourceSize) / 2;
+
+      canvas.width = size;
+      canvas.height = size;
+      context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, size, size);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+
+    reader.readAsDataURL(file);
+  });
+};
 
 export default Profile;

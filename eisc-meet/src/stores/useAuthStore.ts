@@ -258,6 +258,14 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       const profile = await updateUserProfile(authUser.uid, data);
+      const nextDisplayName = typeof data.name !== "undefined" ? data.name ?? undefined : undefined;
+
+      if (typeof nextDisplayName !== "undefined") {
+        await updateFirebaseProfile(authUser, {
+          displayName: nextDisplayName,
+        });
+      }
+
       set({ profile, profileLoading: false });
     } catch (error) {
       set({ error: authErrorMessage(error), profileLoading: false });

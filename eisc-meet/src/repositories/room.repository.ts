@@ -1,5 +1,5 @@
 import { apiFetchJson } from "../lib/apiClient";
-import type { CreateRoomPayload, StudyRoom } from "../types/room.types";
+import type { ChatMessage, CreateRoomPayload, StudyRoom } from "../types/room.types";
 
 const sortRooms = (rooms: StudyRoom[]) => {
   return rooms.sort((left, right) => (right.createdAt ?? "").localeCompare(left.createdAt ?? ""));
@@ -61,8 +61,24 @@ export const joinRoom = async (roomIdOrCode: string, _uid: string): Promise<Stud
   });
 };
 
+export const updateRoom = async (roomId: string, payload: CreateRoomPayload): Promise<StudyRoom> => {
+  return apiFetchJson<StudyRoom>(`/api/rooms/${encodeURIComponent(roomId)}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      name: payload.name,
+      subject: payload.subject,
+      description: payload.description,
+      maxParticipants: payload.maxParticipants,
+    }),
+  });
+};
+
 export const deleteRoom = async (roomId: string): Promise<void> => {
   await apiFetchJson<{ ok: boolean }>(`/api/rooms/${encodeURIComponent(roomId)}`, {
     method: "DELETE",
   });
+};
+
+export const listRoomMessages = async (roomId: string): Promise<ChatMessage[]> => {
+  return apiFetchJson<ChatMessage[]>(`/api/rooms/${encodeURIComponent(roomId)}/messages`);
 };

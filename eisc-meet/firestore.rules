@@ -59,6 +59,15 @@ service cloud.firestore {
         allow update, delete: if signedIn()
           && get(/databases/$(database)/documents/rooms/$(roomId)).data.ownerId == request.auth.uid;
       }
+
+      match /messages/{messageId} {
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
+        allow create: if signedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
+        allow update, delete: if false;
+      }
     }
   }
 }

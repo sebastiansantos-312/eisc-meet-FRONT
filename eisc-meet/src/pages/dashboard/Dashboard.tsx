@@ -1,11 +1,12 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Circle, Clock, LogIn, Plus, Search, Users, X } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Circle, Clock, Edit3, LogIn, Plus, Search, Trash2, Users, X } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell";
-import { createRoom, joinRoom, listRoomsByParticipant } from "../../repositories/room.repository";
+import { createRoom, deleteRoom, joinRoom, listRoomsByParticipant, updateRoom } from "../../repositories/room.repository";
+import { connectSocket, socket } from "../../sockets/socketManager";
 import useAuthStore from "../../stores/useAuthStore";
-import type { StudyRoom } from "../../types/room.types";
+import type { CreateRoomPayload, StudyRoom } from "../../types/room.types";
 
 const onlineUsers = [
   { name: "Tu", avatar: "TU", status: "Disponible" },
@@ -13,6 +14,7 @@ const onlineUsers = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const authUser = useAuthStore((state) => state.authUser);
   const profile = useAuthStore((state) => state.profile);
   const [rooms, setRooms] = useState<StudyRoom[]>([]);
@@ -20,9 +22,15 @@ const Dashboard = () => {
   const [savingRoom, setSavingRoom] = useState(false);
   const [joiningRoom, setJoiningRoom] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<StudyRoom | null>(null);
+  const [deletingRoom, setDeletingRoom] = useState<StudyRoom | null>(null);
   const [query, setQuery] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice] = useState<string | null>(() => {
+    const state = location.state as { notice?: string } | null;
+    return state?.notice ?? null;
+  });
 
   const ownRooms = useMemo(() => {
     return rooms.filter((room) => room.ownerId === authUser?.uid);
@@ -66,6 +74,12 @@ const Dashboard = () => {
     };
   }, [authUser?.uid]);
 
+  useEffect(() => {
+    if (!notice) return;
+
+    navigate(location.pathname, { replace: true });
+  }, [location.pathname, navigate, notice]);
+
   const handleCreateRoom = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -95,8 +109,54 @@ const Dashboard = () => {
       setRooms((current) => [room, ...current]);
       setShowCreateRoom(false);
       form.reset();
+      navigate(`/room/${room.id}`);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "No se pudo crear la sala.");
+    } finally {
+      setSavingRoom(false);
+    }
+  };
+
+  const handleUpdateRoom = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!authUser?.uid || !editingRoom) {
+      setError("Debes iniciar sesion para editar una sala.");
+      return;
+    }
+
+    const payload = roomPayloadFromForm(event.currentTarget, authUser.uid);
+
+    setSavingRoom(true);
+    setError(null);
+
+    try {
+      const updatedRoom = await updateRoom(editingRoom.id, payload);
+      setRooms((current) => current.map((room) => room.id === updatedRoom.id ? updatedRoom : room));
+      setEditingRoom(null);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "No se pudo editar la sala.");
+    } finally {
+      setSavingRoom(false);
+    }
+  };
+
+  const handleDeleteRoom = async () => {
+    if (!deletingRoom) return;
+
+    setSavingRoom(true);
+    setError(null);
+
+    try {
+      await deleteRoom(deletingRoom.id);
+      const connected = await connectSocket();
+      if (connected) {
+        socket.emit("room:closed", { roomId: deletingRoom.id });
+      }
+      setRooms((current) => current.filter((room) => room.id !== deletingRoom.id));
+      setDeletingRoom(null);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "No se pudo eliminar la sala.");
     } finally {
       setSavingRoom(false);
     }
@@ -188,6 +248,12 @@ const Dashboard = () => {
           </div>
         ) : null}
 
+        {notice ? (
+          <div className="mb-5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            {notice}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             {loadingRooms ? (
@@ -197,20 +263,44 @@ const Dashboard = () => {
               </div>
             ) : filteredRooms.length ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {filteredRooms.map((room) => (
-                  <Link
+                {filteredRooms.map((room) => {
+                  const isOwner = room.ownerId === authUser?.uid;
+
+                  return (
+                  <article
                     key={room.id}
-                    to={`/room/${room.id}`}
-                    className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-primary/50 hover:shadow-lg"
+                    className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-primary/50 hover:shadow-lg"
                   >
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div>
                         <h2 className="font-semibold text-card-foreground transition-colors group-hover:text-primary">{room.name}</h2>
                         <p className="text-xs text-muted-foreground">{room.subject}</p>
                       </div>
-                      <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">
-                        {room.ownerId === authUser?.uid ? "Admin" : "Invitado"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">
+                          {isOwner ? "Admin" : "Invitado"}
+                        </span>
+                        {isOwner ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setEditingRoom(room)}
+                              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+                              aria-label={`Editar sala ${room.name}`}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingRoom(room)}
+                              className="rounded-lg p-2 text-red-200 transition-colors hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-300"
+                              aria-label={`Eliminar sala ${room.name}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                     <p className="mb-4 line-clamp-2 min-h-10 text-sm text-muted-foreground">
                       {room.description || "Sala de estudio privada"}
@@ -229,12 +319,15 @@ const Dashboard = () => {
                       </span>
                     </div>
                     <div className="mt-4 border-t border-border pt-4">
-                      <span className="block rounded-lg bg-primary/10 py-2 text-center text-sm font-medium text-primary transition-colors group-hover:bg-primary/20">
+                      <Link
+                        to={`/room/${room.id}`}
+                        className="block rounded-lg bg-primary/10 py-2 text-center text-sm font-medium text-primary transition-colors hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
                         Entrar a la sala
-                      </span>
+                      </Link>
                     </div>
-                  </Link>
-                ))}
+                  </article>
+                )})}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
@@ -362,17 +455,114 @@ const Dashboard = () => {
           </section>
         </div>
       ) : null}
+
+      {editingRoom ? (
+        <RoomFormDialog
+          title="Editar sala"
+          description="Solo el anfitrion puede modificar estos datos."
+          submitLabel={savingRoom ? "Guardando..." : "Guardar cambios"}
+          room={editingRoom}
+          disabled={savingRoom}
+          onClose={() => setEditingRoom(null)}
+          onSubmit={handleUpdateRoom}
+        />
+      ) : null}
+
+      {deletingRoom ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-room-title" className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl">
+            <h2 id="delete-room-title" className="text-xl font-semibold text-card-foreground">Eliminar sala?</h2>
+            <p className="mt-2 text-sm text-muted-foreground">La sala dejara de aparecer en el dashboard y no podra ser usada por invitados.</p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setDeletingRoom(null)} className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
+                Cancelar
+              </button>
+              <button type="button" disabled={savingRoom} onClick={handleDeleteRoom} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-400 px-4 py-2.5 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60">
+                <Trash2 className="h-4 w-4" />
+                {savingRoom ? "Eliminando..." : "Eliminar sala"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </DashboardShell>
   );
 };
 
-const TextField = ({ name, label, placeholder }: { name: string; label: string; placeholder: string }) => (
+const roomPayloadFromForm = (form: HTMLFormElement, ownerId: string): CreateRoomPayload => {
+  const formData = new FormData(form);
+
+  return {
+    ownerId,
+    name: String(formData.get("name") ?? ""),
+    subject: String(formData.get("subject") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    maxParticipants: Number(formData.get("maxParticipants") ?? 8),
+  };
+};
+
+const RoomFormDialog = ({
+  title,
+  description,
+  submitLabel,
+  room,
+  disabled,
+  onClose,
+  onSubmit,
+}: {
+  title: string;
+  description: string;
+  submitLabel: string;
+  room?: StudyRoom;
+  disabled: boolean;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) => (
+  <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
+    <section role="dialog" aria-modal="true" aria-labelledby="room-form-title" className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 id="room-form-title" className="text-xl font-semibold text-card-foreground">{title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+        <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Cerrar dialogo de sala">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <TextField name="name" label="Nombre de la sala" placeholder="Repaso de estructuras de datos" defaultValue={room?.name} />
+        <TextField name="subject" label="Materia" placeholder="Ciencias de la computacion" defaultValue={room?.subject} />
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-card-foreground">Descripcion</span>
+          <textarea name="description" rows={3} defaultValue={room?.description} placeholder="Objetivo breve de esta sala" className="w-full resize-none rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+        </label>
+        <label className="block">
+          <span className="mb-2 block text-sm font-medium text-card-foreground">Maximo de participantes</span>
+          <input name="maxParticipants" type="number" min={2} max={50} defaultValue={room?.maxParticipants ?? 8} className="w-full rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+        </label>
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
+            Cancelar
+          </button>
+          <button type="submit" disabled={disabled} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60">
+            <Plus className="h-4 w-4" />
+            {submitLabel}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+);
+
+const TextField = ({ name, label, placeholder, defaultValue }: { name: string; label: string; placeholder: string; defaultValue?: string }) => (
   <label className="block">
     <span className="mb-2 block text-sm font-medium text-card-foreground">{label}</span>
     <input
       name={name}
       type="text"
       required
+      defaultValue={defaultValue}
       placeholder={placeholder}
       className="w-full rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
     />

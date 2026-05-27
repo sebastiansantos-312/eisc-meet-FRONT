@@ -28,3 +28,11 @@ export type RoomParticipant = {
   role: ParticipantRole;
   joinedAt?: string;
 };
+
+export type ChatMessage = {
+  id: string;
+  roomId: string;
+  senderId: string;
+  message: string;
+  createdAt?: string;
+};
