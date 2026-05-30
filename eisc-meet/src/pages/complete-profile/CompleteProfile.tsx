@@ -103,6 +103,7 @@ const CompleteProfile = () => {
                   maxLength={20}
                   pattern="[A-Za-z0-9_]{3,20}"
                   placeholder="eisc_student"
+                  defaultValue={profile?.username ?? ""}
                   className="w-full rounded-lg border border-input bg-input-background py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </span>

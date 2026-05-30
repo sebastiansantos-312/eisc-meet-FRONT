@@ -64,6 +64,7 @@ const resolveProfile = async (user: User, extraData?: InitialUserExtras) => {
 };
 
 const institutionalEmailError = `Usa tu correo institucional ${institutionalEmailDomain}.`;
+let manualRegistrationInProgress = false;
 
 const assertInstitutionalUser = (user: User) => {
   if (!isInstitutionalEmail(user.email)) {
@@ -118,6 +119,11 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         return;
       }
 
+      if (manualRegistrationInProgress) {
+        set({ authUser: user, profileLoading: true, error: null });
+        return;
+      }
+
       set({ authUser: user, profileLoading: true, error: null });
 
       try {
@@ -168,6 +174,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
   registerWithEmail: async ({ firstName, lastName, username, email, password }) => {
     set({ loading: true, error: null });
+    manualRegistrationInProgress = true;
 
     try {
       const normalizedUsername = normalizeUsername(username);
@@ -213,6 +220,8 @@ const useAuthStore = create<AuthStore>((set, get) => ({
       console.error("[EISC Meet] registerWithEmail failed:", error);
       set({ error: authErrorMessage(error), loading: false });
       throw error;
+    } finally {
+      manualRegistrationInProgress = false;
     }
   },
 
