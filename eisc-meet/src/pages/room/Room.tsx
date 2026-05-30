@@ -1101,7 +1101,7 @@ const ChatPanel = ({
     const el = messagesContainerRef.current;
     try {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    } catch (e) {
+    } catch {
       // fallback for older browsers
       el.scrollTop = el.scrollHeight;
     }

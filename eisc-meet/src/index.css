@@ -3,26 +3,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #fafafa;
-  --foreground: #1f1f1f;
-  --card: #ffffff;
-  --card-foreground: #1f1f1f;
-  --primary: #6366f1;
+  --background: #313338;
+  --foreground: #f2f3f5;
+  --card: #2b2d31;
+  --card-foreground: #f2f3f5;
+  --primary: #5865f2;
   --primary-foreground: #ffffff;
-  --secondary: #8b5cf6;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #eef2ff;
-  --accent-foreground: #4338ca;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --input-background: #ffffff;
-  --ring: #6366f1;
-  --sidebar: #16162a;
-  --sidebar-foreground: #f5f5f7;
-  --sidebar-accent: #2e2e48;
-  --sidebar-accent-foreground: #c4b5fd;
-  --sidebar-border: #27273a;
+  --secondary: #23a559;
+  --muted: #383a40;
+  --muted-foreground: #b5bac1;
+  --accent: #404249;
+  --accent-foreground: #ffffff;
+  --border: #1f2023;
+  --input: #1f2023;
+  --input-background: #1e1f22;
+  --ring: #8ea1e1;
+  --sidebar: #1e1f22;
+  --sidebar-foreground: #dbdee1;
+  --sidebar-accent: #35373c;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #111214;
   --radius: 0.75rem;
 }
 
@@ -55,21 +55,26 @@
 
 .dark,
 :root {
-  --background: #0f0f1a;
-  --foreground: #f5f5f7;
-  --card: #1a1a2e;
-  --card-foreground: #f5f5f7;
-  --primary: #818cf8;
-  --primary-foreground: #0f0f1a;
-  --secondary: #a78bfa;
-  --muted: #27273a;
-  --muted-foreground: #a1a1aa;
-  --accent: #2e2e48;
-  --accent-foreground: #c4b5fd;
-  --border: #27273a;
-  --input: #27273a;
-  --input-background: #16162a;
-  --ring: #818cf8;
+  --background: #313338;
+  --foreground: #f2f3f5;
+  --card: #2b2d31;
+  --card-foreground: #f2f3f5;
+  --primary: #5865f2;
+  --primary-foreground: #ffffff;
+  --secondary: #23a559;
+  --muted: #383a40;
+  --muted-foreground: #b5bac1;
+  --accent: #404249;
+  --accent-foreground: #ffffff;
+  --border: #1f2023;
+  --input: #1f2023;
+  --input-background: #1e1f22;
+  --ring: #8ea1e1;
+  --sidebar: #1e1f22;
+  --sidebar-foreground: #dbdee1;
+  --sidebar-accent: #35373c;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #111214;
 }
 
 @theme inline {
@@ -109,6 +114,11 @@
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
+  #root {
+    min-height: 100vh;
+    background: var(--background);
+  }
+
   button,
   input,
   select,
@@ -118,6 +128,12 @@
 
   a {
     @apply text-inherit no-underline;
+  }
+
+  input,
+  select,
+  textarea {
+    color-scheme: dark;
   }
 
   .skip-link {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AtSign, CheckCircle, Lock, Mail, User, Video } from "lucide-react";
 import useAuthStore from "../../stores/useAuthStore";
-import { isValidUsername } from "../../types/user.types";
+import { institutionalEmailDomain, isInstitutionalEmail, isValidUsername } from "../../types/user.types";
 
 type RegisterForm = {
   firstName: string;
@@ -51,6 +51,8 @@ const validateRegisterForm = (form: RegisterForm): RegisterErrors => {
 
   if (!emailPattern.test(email)) {
     errors.email = "Ingresa un correo valido.";
+  } else if (!isInstitutionalEmail(email)) {
+    errors.email = `Usa tu correo institucional ${institutionalEmailDomain}.`;
   }
 
   if (form.password.length < 6) {
@@ -88,12 +90,15 @@ const Register = () => {
     clearError();
     setStatus(null);
 
-    const normalizedForm = {
-      ...form,
-      firstName: form.firstName.trim(),
-      lastName: form.lastName.trim(),
-      username: form.username.trim(),
-      email: form.email.trim().toLowerCase(),
+    const formData = new FormData(event.currentTarget);
+    const normalizedForm: RegisterForm = {
+      firstName: String(formData.get("firstName") ?? "").trim(),
+      lastName: String(formData.get("lastName") ?? "").trim(),
+      username: String(formData.get("username") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim().toLowerCase(),
+      password: String(formData.get("password") ?? ""),
+      confirmPassword: String(formData.get("confirmPassword") ?? ""),
+      termsAccepted: form.termsAccepted,
     };
     const errors = validateRegisterForm(normalizedForm);
 
@@ -199,7 +204,7 @@ const Register = () => {
               value={form.email}
               onChange={(value) => updateField("email", value.toLowerCase())}
               error={fieldErrors.email}
-              placeholder="estudiante@universidad.edu"
+              placeholder={`estudiante${institutionalEmailDomain}`}
               icon={<Mail className="h-5 w-5" />}
             />
 

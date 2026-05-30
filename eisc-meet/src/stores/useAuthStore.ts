@@ -23,7 +23,7 @@ import {
   updateUserProfile,
   type InitialUserExtras,
 } from "../repositories/user.repository";
-import { joinDisplayName, normalizeUsername, type UserData } from "../types/user.types";
+import { institutionalEmailDomain, isInstitutionalEmail, joinDisplayName, normalizeUsername, type UserData } from "../types/user.types";
 
 type RegisterPayload = {
   firstName: string;
@@ -61,6 +61,14 @@ type AuthStore = {
 const resolveProfile = async (user: User, extraData?: InitialUserExtras) => {
   const existingProfile = await getUserProfile(user.uid);
   return existingProfile ?? createInitialUserProfile(user, extraData);
+};
+
+const institutionalEmailError = `Usa tu correo institucional ${institutionalEmailDomain}.`;
+
+const assertInstitutionalUser = (user: User) => {
+  if (!isInstitutionalEmail(user.email)) {
+    throw new Error(institutionalEmailError);
+  }
 };
 
 const authErrorMessage = (error: unknown) => {
@@ -104,6 +112,12 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         return;
       }
 
+      if (!isInstitutionalEmail(user.email)) {
+        await signOut(auth);
+        set({ authUser: null, profile: null, loading: false, profileLoading: false, error: institutionalEmailError });
+        return;
+      }
+
       set({ authUser: user, profileLoading: true, error: null });
 
       try {
@@ -120,10 +134,14 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      assertInstitutionalUser(result.user);
       const profile = await resolveProfile(result.user);
       set({ authUser: result.user, profile, loading: false });
       return profile;
     } catch (error) {
+      if (error instanceof Error && error.message === institutionalEmailError) {
+        await signOut(auth).catch(() => undefined);
+      }
       set({ error: authErrorMessage(error), loading: false });
       throw error;
     }
@@ -133,7 +151,12 @@ const useAuthStore = create<AuthStore>((set, get) => ({
     set({ loading: true, error: null });
 
     try {
+      if (!isInstitutionalEmail(email)) {
+        throw new Error(institutionalEmailError);
+      }
+
       const result = await signInWithEmailAndPassword(auth, email, password);
+      assertInstitutionalUser(result.user);
       const profile = await resolveProfile(result.user);
       set({ authUser: result.user, profile, loading: false });
       return profile;
@@ -149,6 +172,11 @@ const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       const normalizedUsername = normalizeUsername(username);
       const normalizedEmail = email.trim().toLowerCase();
+
+      if (!isInstitutionalEmail(normalizedEmail)) {
+        throw new Error(institutionalEmailError);
+      }
+
       const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
 
       if (methods.includes("google.com") && !methods.includes("password")) {

@@ -40,17 +40,26 @@ const DashboardShell = ({ children }: DashboardShellProps) => {
       <a href="#contenido-principal" className="skip-link">
         Saltar al contenido principal
       </a>
-      <aside className="border-sidebar-border bg-sidebar text-sidebar-foreground lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:border-r">
+      <aside className="sticky top-0 z-40 border-b border-sidebar-border bg-sidebar text-sidebar-foreground lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-b-0">
         <div className="flex items-center justify-between border-b border-sidebar-border p-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary" aria-hidden="true">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary" aria-hidden="true">
               <Video className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-semibold">EISC Meet</span>
           </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-sidebar-foreground transition-colors hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-primary lg:hidden"
+            aria-label="Cerrar sesion"
+            title="Cerrar sesion"
+          >
+            <LogOut className="h-5 w-5" aria-hidden="true" />
+          </button>
         </div>
 
-        <nav className="flex gap-2 overflow-x-auto p-3 lg:flex-1 lg:flex-col lg:overflow-visible" aria-label="Navegacion principal">
+        <nav className="flex gap-2 overflow-x-auto p-3 [scrollbar-width:none] lg:flex-1 lg:flex-col lg:overflow-visible" aria-label="Navegacion principal">
           {navItems.map((item) => (
             <NavItem key={item.label} {...item} />
           ))}
@@ -91,7 +100,7 @@ const NavItem = ({ to, icon, label, badge }: NavItemProps) => {
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`flex min-w-max items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+      className={`flex min-h-10 min-w-max items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-accent/50"

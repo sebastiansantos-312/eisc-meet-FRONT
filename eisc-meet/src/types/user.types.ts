@@ -74,3 +74,9 @@ export const normalizeUsername = (username: string) => {
 export const isValidUsername = (username: string) => {
   return /^[a-z0-9_]{3,20}$/.test(normalizeUsername(username));
 };
+
+export const institutionalEmailDomain = "@correounivalle.edu.co";
+
+export const isInstitutionalEmail = (email: string | null | undefined) => {
+  return Boolean(email?.trim().toLowerCase().endsWith(institutionalEmailDomain));
+};
