@@ -6,46 +6,63 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function ownsUserDoc(uid) {
-      return signedIn() && request.auth.uid == uid;
+    function institutionalUser() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.matches('^.+@correounivalle\\.edu\\.co$');
+    }
+
+    function isRoomParticipant(roomId) {
+      return request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
     }
 
     match /users/{uid} {
-      allow read, create, update, delete: if ownsUserDoc(uid);
+      allow read, create, update, delete: if institutionalUser()
+        && request.auth.uid == uid;
     }
 
     match /usernames/{username} {
-      allow read: if signedIn();
-      allow create: if signedIn()
+      allow read: if institutionalUser();
+
+      allow create: if institutionalUser()
         && !exists(/databases/$(database)/documents/usernames/$(username))
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.username == username;
+
       allow update: if false;
-      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+
+      allow delete: if institutionalUser()
+        && resource.data.uid == request.auth.uid;
     }
 
     match /rooms/{roomId} {
-      allow read: if signedIn();
-      allow create: if signedIn()
+      allow read: if institutionalUser();
+
+      allow create: if institutionalUser()
         && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == "active"
         && request.resource.data.participantIds.size() == 1
         && request.resource.data.participantIds[0] == request.auth.uid;
-      allow update: if signedIn() && (
+
+      allow update: if institutionalUser() && (
         resource.data.ownerId == request.auth.uid
         || (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(["participantIds", "updatedAt"])
+          && resource.data.status == "active"
           && !(request.auth.uid in resource.data.participantIds)
           && request.auth.uid in request.resource.data.participantIds
           && request.resource.data.participantIds.hasAll(resource.data.participantIds)
           && request.resource.data.participantIds.size() == resource.data.participantIds.size() + 1
-          && request.resource.data.participantIds.size() <= resource.data.maxParticipants
         )
       );
-      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+
+      allow delete: if institutionalUser()
+        && resource.data.ownerId == request.auth.uid;
 
       match /participants/{uid} {
-        allow read: if signedIn();
-        allow create: if signedIn()
+        allow read: if institutionalUser();
+
+        allow create: if institutionalUser()
           && uid == request.auth.uid
           && request.resource.data.uid == request.auth.uid
           && request.auth.uid in getAfter(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds
@@ -56,18 +73,30 @@ service cloud.firestore {
               && getAfter(/databases/$(database)/documents/rooms/$(roomId)).data.ownerId == request.auth.uid
             )
           );
-        allow update, delete: if signedIn()
+
+        allow update, delete: if institutionalUser()
           && get(/databases/$(database)/documents/rooms/$(roomId)).data.ownerId == request.auth.uid;
       }
 
       match /messages/{messageId} {
-        allow read: if signedIn()
-          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
-        allow create: if signedIn()
+        allow read: if institutionalUser()
+          && isRoomParticipant(roomId);
+
+        allow create: if institutionalUser()
+          && request.resource.data.keys().hasOnly(["roomId", "senderId", "message", "createdAt"])
+          && request.resource.data.roomId == roomId
           && request.resource.data.senderId == request.auth.uid
-          && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
+          && request.resource.data.message is string
+          && request.resource.data.message.size() > 0
+          && request.resource.data.message.size() <= 2000
+          && isRoomParticipant(roomId);
+
         allow update, delete: if false;
       }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

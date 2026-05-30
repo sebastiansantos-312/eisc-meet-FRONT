@@ -799,30 +799,35 @@ const Room = () => {
   }, [navigate, roomId]);
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
-        <div className="flex items-center gap-4">
+    <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground" aria-label="Sala de estudio colaborativo">
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-card/95 px-3 py-2.5 shadow-sm sm:px-4">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
             onClick={leaveRoom}
-            className="rounded-lg p-2 text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Volver al inicio"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <div>
-            <h1 className="text-lg font-semibold text-card-foreground sm:text-xl">
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-semibold text-card-foreground sm:text-lg">
               {roomLoading ? "Cargando sala..." : room?.name ?? "Sala de estudio"}
             </h1>
-            <p className="text-xs text-muted-foreground">ID de sala: {roomId ?? "general"}</p>
+            <p className="truncate text-xs text-muted-foreground">ID de sala: {roomId ?? "general"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-sm font-medium text-card-foreground sm:flex" aria-live="polite">
+            <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+            <span>{participants.length}</span>
+            <span className="text-muted-foreground">participantes</span>
+          </div>
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowSettings(true)}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+              className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
               aria-label="Configuracion de dispositivos"
             >
               <Settings className="h-5 w-5" />
@@ -832,20 +837,22 @@ const Room = () => {
             <button
               type="button"
               onClick={() => setShowMoreMenu((current) => !current)}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+              className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
               aria-label="Mas opciones"
+              aria-haspopup="menu"
+              aria-expanded={showMoreMenu}
             >
               <MoreVertical className="h-5 w-5" />
             </button>
             {showMoreMenu ? (
-              <div className="absolute right-0 top-11 z-20 w-52 rounded-lg border border-border bg-card p-2 shadow-xl">
-                <button type="button" onClick={handleCopyRoomId} className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
+              <div className="absolute right-0 top-11 z-20 w-56 rounded-lg border border-border bg-card p-2 shadow-xl" role="menu">
+                <button type="button" onClick={handleCopyRoomId} className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" role="menuitem">
                   Copiar ID de sala
                 </button>
-                <button type="button" onClick={() => { setShowChat((current) => !current); setShowMoreMenu(false); }} className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
+                <button type="button" onClick={() => { setShowChat((current) => !current); setShowMoreMenu(false); }} className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" role="menuitem">
                   {showChat ? "Ocultar chat" : "Mostrar chat"}
                 </button>
-                <button type="button" onClick={() => { handleRetryMedia(); setShowMoreMenu(false); }} className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
+                <button type="button" onClick={() => { handleRetryMedia(); setShowMoreMenu(false); }} className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" role="menuitem">
                   Reintentar camara y microfono
                 </button>
               </div>
@@ -864,15 +871,33 @@ const Room = () => {
         </div>
       ) : null}
 
-      <section className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="min-w-0 flex-1 overflow-auto p-4">
+      <section className="flex min-h-0 flex-1 overflow-hidden bg-background" aria-label="Contenido de la sala">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-border/80 px-3 py-2 sm:hidden">
+            <div className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm font-medium text-card-foreground" aria-live="polite">
+              <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+              <span>{participants.length} participantes</span>
+            </div>
+            {!showChat ? (
+              <button
+                type="button"
+                onClick={() => setShowChat(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                Chat
+              </button>
+            ) : null}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
           {roomError ? (
-            <div className="mb-4 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="mb-4 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200" role="alert">
               {roomError}
             </div>
           ) : null}
           {mediaError ? (
-            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between" role="alert">
               <span>{mediaError}</span>
               <button
                 type="button"
@@ -884,15 +909,16 @@ const Room = () => {
               </button>
             </div>
           ) : null}
-          <div className={`grid content-start gap-4 ${participants.length <= 1 ? "grid-cols-1" : "sm:grid-cols-2"} ${participants.length >= 5 ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
+          <div className={`grid min-h-full content-center gap-3 sm:gap-4 ${participants.length <= 1 ? "mx-auto w-full max-w-5xl grid-cols-1" : "grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]"}`} aria-label={`Mosaico de video con ${participants.length} participantes`}>
             {participants.map((participant) => (
               <ParticipantVideo key={participant.id} participant={participant} />
             ))}
           </div>
+          </div>
         </div>
 
         {showChat ? (
-          <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-card md:flex xl:w-96">
+          <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-card md:flex xl:w-96" aria-label="Chat de la sala">
             <ChatPanel
               messages={messages}
               authUserId={authUser?.uid}
@@ -910,7 +936,7 @@ const Room = () => {
       </section>
 
       {showChat ? (
-        <section className="border-t border-border bg-card md:hidden">
+        <section className="max-h-[42dvh] border-t border-border bg-card md:hidden" aria-label="Chat de la sala">
           <ChatPanel
             compact
             messages={messages}
@@ -927,14 +953,14 @@ const Room = () => {
         </section>
       ) : null}
 
-      <footer className="border-t border-border bg-card px-4 py-3">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-5 w-5" />
+      <footer className="border-t border-border bg-card px-3 py-2.5 sm:px-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
+          <div className="hidden min-w-0 items-center gap-2 text-sm text-muted-foreground lg:flex">
+            <Users className="h-5 w-5" aria-hidden="true" />
             <span>{participants.length} participantes</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-2 overflow-x-auto px-1">
             <MediaControlGroup
               kind="audioinput"
               open={openDeviceMenu === "audioinput"}
@@ -982,14 +1008,15 @@ const Room = () => {
             <button
               type="button"
               onClick={leaveRoom}
-              className="inline-flex min-h-16 items-center gap-2 rounded-xl bg-red-400 px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-red-400 px-4 font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300 sm:px-5"
+              aria-label="Salir de la sala"
             >
-              <PhoneOff className="h-5 w-5" />
-              Salir
+              <PhoneOff className="h-5 w-5" aria-hidden="true" />
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
 
-          <div className="hidden w-32 lg:block" />
+          <div className="hidden w-32 lg:block" aria-hidden="true" />
         </div>
       </footer>
 
@@ -1013,27 +1040,30 @@ const Room = () => {
 
 const ParticipantVideo = ({ participant }: { participant: VideoParticipant }) => {
   return (
-    <div
-      className={`relative flex aspect-video min-h-40 items-center justify-center overflow-hidden rounded-xl border-2 bg-muted transition-colors shadow-sm ${
-        participant.isSpeaking ? "border-primary" : "border-transparent"
+    <article
+      className={`relative flex aspect-video min-h-44 items-center justify-center overflow-hidden rounded-lg border bg-muted shadow-sm transition-colors ${
+        participant.isSpeaking ? "border-primary ring-2 ring-primary/40" : "border-border"
       }`}
+      aria-label={`${participant.name}${participant.isLocal ? ", participante local" : ""}. ${participant.isMuted ? "Microfono apagado" : "Microfono activo"}. ${participant.isVideoOff ? "Camara apagada" : "Camara activa"}.`}
     >
       {participant.stream && !participant.isVideoOff ? (
         <StreamVideo stream={participant.stream} />
       ) : (
-        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-secondary/20">
-          <span className="text-3xl font-semibold text-primary">{participant.avatar}</span>
+        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 sm:h-28 sm:w-28" aria-hidden="true">
+          <span className="text-3xl font-semibold text-primary sm:text-4xl">{participant.avatar}</span>
         </div>
       )}
       {participant.stream && !participant.isLocal ? <StreamAudio stream={participant.stream} /> : null}
 
-      <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-1.5 backdrop-blur-sm">
-        <span className="text-sm font-semibold text-white">{participant.name}</span>
-        {participant.isMuted ? <MicOff className="h-3.5 w-3.5 text-white" /> : null}
-        {participant.isVideoOff ? <VideoOff className="h-3.5 w-3.5 text-white" /> : null}
-        <span className={`h-2 w-2 rounded-full ${participant.isOnline ? "bg-green-400" : "bg-slate-400"}`} />
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 rounded-full bg-black/75 px-3 py-1.5 backdrop-blur-sm">
+          <span className="truncate text-sm font-semibold text-white">{participant.name}</span>
+          {participant.isMuted ? <MicOff className="h-3.5 w-3.5 shrink-0 text-white" aria-label="Microfono apagado" /> : null}
+          {participant.isVideoOff ? <VideoOff className="h-3.5 w-3.5 shrink-0 text-white" aria-label="Camara apagada" /> : null}
+        </div>
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${participant.isOnline ? "bg-green-400" : "bg-slate-400"}`} aria-label={participant.isOnline ? "En linea" : "Desconectado"} />
       </div>
-    </div>
+    </article>
   );
 };
 
@@ -1052,6 +1082,7 @@ const StreamVideo = ({ stream }: { stream: MediaStream }) => {
       autoPlay
       playsInline
       muted
+      aria-label="Video del participante"
       className="h-full w-full bg-black object-cover"
     />
   );
@@ -1066,7 +1097,7 @@ const StreamAudio = ({ stream }: { stream: MediaStream }) => {
     }
   }, [stream]);
 
-  return <audio ref={audioRef} autoPlay playsInline />;
+  return <audio ref={audioRef} autoPlay playsInline aria-label="Audio del participante" />;
 };
 
 const ChatPanel = ({
@@ -1108,10 +1139,10 @@ const ChatPanel = ({
   }, [messages]);
 
   return (
-    <div className={`flex flex-col ${compact ? "max-h-80" : "h-full"}`}>
+    <div className={`flex min-h-0 flex-col ${compact ? "max-h-[42dvh]" : "h-full"}`}>
       <div className="flex items-center justify-between border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
+          <MessageSquare className="h-5 w-5 text-primary" aria-hidden="true" />
           <h2 className="font-semibold text-card-foreground">Mensajes</h2>
         </div>
         <button onClick={onClose} className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Cerrar chat">
@@ -1119,13 +1150,13 @@ const ChatPanel = ({
         </button>
       </div>
 
-      <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-auto p-4">
+      <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-auto p-4" role="log" aria-live="polite" aria-relevant="additions text">
         {messages.length ? (
           messages.map((message) => (
             <ChatMessage key={message.id} message={message} isYou={message.senderId === authUserId} senderName={participantNames[message.senderId] ?? "Participante"} />
           ))
         ) : (
-          <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground" role="status">
             Aun no hay mensajes en esta sala.
           </div>
         )}
@@ -1134,10 +1165,12 @@ const ChatPanel = ({
 
       <div className="border-t border-border p-4">
         {error ? (
-          <p className="mb-3 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</p>
+          <p className="mb-3 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">{error}</p>
         ) : null}
         <form onSubmit={onSend} className="flex gap-2">
+          <label className="sr-only" htmlFor="room-chat-message">Mensaje para el chat</label>
           <input
+            id="room-chat-message"
             type="text"
             value={messageText}
             onChange={(event) => onMessageTextChange(event.target.value)}
@@ -1150,7 +1183,7 @@ const ChatPanel = ({
             className="rounded-lg bg-primary p-2 text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Enviar mensaje"
           >
-            <Send className="h-5 w-5" />
+            <Send className="h-5 w-5" aria-hidden="true" />
           </button>
         </form>
       </div>
@@ -1179,19 +1212,20 @@ const MediaControlGroup = ({
   const emptyLabel = kind === "audioinput" ? "No hay microfonos detectados" : "No hay camaras detectadas";
 
   return (
-    <div className="relative flex overflow-visible rounded-xl">
+    <div className="relative flex shrink-0 overflow-visible rounded-full">
       {control}
       <button
         type="button"
         onClick={onToggleMenu}
-        className="ml-1 flex min-h-16 w-10 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-colors hover:bg-accent/80 focus:outline-none focus:ring-2 focus:ring-primary"
+        className="ml-1 flex h-12 w-9 items-center justify-center rounded-full bg-accent text-accent-foreground transition-colors hover:bg-accent/80 focus:outline-none focus:ring-2 focus:ring-primary"
         aria-label={label}
+        aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <ChevronDown className="h-4 w-4" />
+        <ChevronDown className="h-4 w-4" aria-hidden="true" />
       </button>
       {open ? (
-        <div className="absolute bottom-20 left-0 z-20 w-72 rounded-lg border border-border bg-card p-2 shadow-xl">
+        <div className="absolute bottom-14 left-0 z-20 w-72 rounded-lg border border-border bg-card p-2 shadow-xl" role="listbox" aria-label={label}>
           <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase text-muted-foreground">{label}</p>
           {devices.length ? (
             devices.map((device, index) => (
@@ -1202,6 +1236,8 @@ const MediaControlGroup = ({
                 className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary ${
                   selectedDeviceId === device.deviceId ? "bg-accent text-accent-foreground" : ""
                 }`}
+                role="option"
+                aria-selected={selectedDeviceId === device.deviceId}
               >
                 {device.label || `${kind === "audioinput" ? "Microfono" : "Camara"} ${index + 1}`}
               </button>
@@ -1252,7 +1288,7 @@ const DeviceSettingsDialog = ({
         </div>
 
         {mediaError ? (
-          <p className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">{mediaError}</p>
+          <p className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100" role="alert">{mediaError}</p>
         ) : null}
 
         <div className="space-y-4">
@@ -1333,13 +1369,14 @@ const ControlButton = ({ icon, label, active, disabled, onClick }: { icon: React
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex min-h-16 min-w-20 flex-col items-center justify-center gap-1.5 rounded-xl px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+      className={`flex h-12 min-w-12 shrink-0 items-center justify-center rounded-full px-3 transition-colors focus:outline-none focus:ring-2 focus:ring-primary sm:min-w-24 sm:gap-1.5 sm:rounded-xl sm:px-4 ${
         isDisabledState ? "bg-red-400 text-white hover:bg-red-500" : "bg-accent text-accent-foreground hover:bg-accent/80"
       } disabled:cursor-not-allowed disabled:opacity-60`}
       aria-label={label}
+      aria-pressed={typeof active === "boolean" ? active : undefined}
     >
       {icon}
-      <span className="text-xs font-semibold">{label}</span>
+      <span className="hidden text-xs font-semibold sm:inline">{label}</span>
     </button>
   );
 };

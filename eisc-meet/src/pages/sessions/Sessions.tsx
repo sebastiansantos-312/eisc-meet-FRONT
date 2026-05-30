@@ -174,7 +174,7 @@ const SessionRow = ({ room, isOwner, compact }: { room: StudyRoom; isOwner: bool
     {!compact ? (
       <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" />{room.createdAt ? new Date(room.createdAt).toLocaleString() : "Fecha reciente"}</span>
-        <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" />{room.participantIds.length}/{room.maxParticipants}</span>
+        <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" />{room.participantIds.length} participantes</span>
       </div>
     ) : null}
     {room.status === "active" ? (

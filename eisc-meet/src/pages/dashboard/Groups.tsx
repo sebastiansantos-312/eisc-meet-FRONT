@@ -143,7 +143,7 @@ const Groups = () => {
     const name = String(formData.get("name") ?? "");
     const subject = String(formData.get("subject") ?? "");
     const description = String(formData.get("description") ?? "");
-    const maxParticipants = Number(formData.get("maxParticipants") ?? 8);
+    const maxParticipants = 0;
 
     setSavingRoom(true);
     setError(null);
@@ -359,7 +359,7 @@ const Groups = () => {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <Users className="h-4 w-4" />
-                        {currentParticipants}/{room.maxParticipants}
+                        {currentParticipants} participantes
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="h-4 w-4" />
@@ -474,17 +474,7 @@ const Groups = () => {
                   className="w-full resize-none rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </label>
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-card-foreground">Maximo de participantes</span>
-                <input
-                  name="maxParticipants"
-                  type="number"
-                  min={2}
-                  max={50}
-                  defaultValue={8}
-                  className="w-full rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </label>
+              <input type="hidden" name="maxParticipants" value={0} />
               <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
@@ -548,7 +538,7 @@ const roomPayloadFromForm = (form: HTMLFormElement, ownerId: string): CreateRoom
     name: String(formData.get("name") ?? ""),
     subject: String(formData.get("subject") ?? ""),
     description: String(formData.get("description") ?? ""),
-    maxParticipants: Number(formData.get("maxParticipants") ?? 8),
+    maxParticipants: 0,
   };
 };
 
@@ -588,10 +578,7 @@ const RoomFormDialog = ({
           <span className="mb-2 block text-sm font-medium text-card-foreground">Descripcion</span>
           <textarea name="description" rows={3} defaultValue={room?.description} placeholder="Objetivo breve de esta sala" className="w-full resize-none rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
         </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-card-foreground">Maximo de participantes</span>
-          <input name="maxParticipants" type="number" min={2} max={50} defaultValue={room?.maxParticipants ?? 8} className="w-full rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
-        </label>
+        <input type="hidden" name="maxParticipants" value={0} />
         <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
             Cancelar
