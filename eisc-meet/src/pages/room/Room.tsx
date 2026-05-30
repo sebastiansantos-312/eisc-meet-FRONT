@@ -1094,6 +1094,19 @@ const ChatPanel = ({
   onSend: (event: FormEvent<HTMLFormElement>) => void;
   onClose: () => void;
 }) => {
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!messages || !messagesContainerRef.current) return;
+    const el = messagesContainerRef.current;
+    try {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    } catch (e) {
+      // fallback for older browsers
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages]);
+
   return (
     <div className={`flex flex-col ${compact ? "max-h-80" : "h-full"}`}>
       <div className="flex items-center justify-between border-b border-border p-4">
@@ -1106,7 +1119,7 @@ const ChatPanel = ({
         </button>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-auto p-4">
+      <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-auto p-4">
         {messages.length ? (
           messages.map((message) => (
             <ChatMessage key={message.id} message={message} isYou={message.senderId === authUserId} senderName={participantNames[message.senderId] ?? "Participante"} />
