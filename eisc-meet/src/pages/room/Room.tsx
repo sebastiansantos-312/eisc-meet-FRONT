@@ -953,14 +953,14 @@ const Room = () => {
         </section>
       ) : null}
 
-      <footer className="border-t border-border bg-card px-3 py-2.5 sm:px-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
+      <footer className="relative z-40 border-t border-border bg-card px-3 py-2.5 sm:px-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 overflow-visible">
           <div className="hidden min-w-0 items-center gap-2 text-sm text-muted-foreground lg:flex">
             <Users className="h-5 w-5" aria-hidden="true" />
             <span>{participants.length} participantes</span>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-2 overflow-x-auto px-1">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2 overflow-visible px-1 sm:flex-nowrap">
             <MediaControlGroup
               kind="audioinput"
               open={openDeviceMenu === "audioinput"}
@@ -1212,7 +1212,7 @@ const MediaControlGroup = ({
   const emptyLabel = kind === "audioinput" ? "No hay microfonos detectados" : "No hay camaras detectadas";
 
   return (
-    <div className="relative flex shrink-0 overflow-visible rounded-full">
+    <div className="relative z-50 flex shrink-0 overflow-visible rounded-full">
       {control}
       <button
         type="button"
@@ -1225,7 +1225,7 @@ const MediaControlGroup = ({
         <ChevronDown className="h-4 w-4" aria-hidden="true" />
       </button>
       {open ? (
-        <div className="absolute bottom-14 left-0 z-20 w-72 rounded-lg border border-border bg-card p-2 shadow-xl" role="listbox" aria-label={label}>
+        <div className="absolute bottom-14 left-0 z-[80] w-72 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-2xl ring-1 ring-black/10" role="listbox" aria-label={label}>
           <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase text-muted-foreground">{label}</p>
           {devices.length ? (
             devices.map((device, index) => (
