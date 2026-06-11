@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Circle, Clock, Edit3, LogIn, Plus, Search, Trash2, Users, X } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell";
@@ -7,6 +7,7 @@ import { createRoom, deleteRoom, joinRoom, listRoomsByParticipant, updateRoom } 
 import { connectSocket, socket } from "../../sockets/socketManager";
 import useAuthStore from "../../stores/useAuthStore";
 import type { CreateRoomPayload, StudyRoom } from "../../types/room.types";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 const onlineUsers = [
   { name: "Tu", avatar: "TU", status: "Disponible" },
@@ -26,12 +27,16 @@ const Groups = () => {
   const [deletingRoom, setDeletingRoom] = useState<StudyRoom | null>(null);
   const [query, setQuery] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  const joinCodeInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [roomOccupancy, setRoomOccupancy] = useState<Record<string, number>>({});
   const [notice] = useState<string | null>(() => {
     const state = location.state as { notice?: string } | null;
     return state?.notice ?? null;
   });
+
+  const createRoomRef = useFocusTrap(showCreateRoom);
+  const deleteRoomRef = useFocusTrap(!!deletingRoom);
 
   const ownRooms = useMemo(() => {
     return rooms.filter((room) => room.ownerId === authUser?.uid);
@@ -80,6 +85,23 @@ const Groups = () => {
 
     navigate(location.pathname, { replace: true });
   }, [location.pathname, navigate, notice]);
+
+  // Auto-open modal or focus join input when navigating from Dashboard quick-access
+  useEffect(() => {
+    const state = location.state as { action?: string; code?: string } | null;
+    if (!state?.action) return;
+
+    if (state.action === "create") {
+      setShowCreateRoom(true);
+    } else if (state.action === "join") {
+      if (state.code) setJoinCode(state.code);
+      window.setTimeout(() => joinCodeInputRef.current?.focus(), 80);
+    }
+
+    // Clear state so back-navigation doesn't re-trigger
+    navigate(location.pathname, { replace: true, state: null });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!showCreateRoom && !editingRoom && !deletingRoom) return;
@@ -249,14 +271,21 @@ const Groups = () => {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <form onSubmit={handleJoinRoom} className="flex min-w-0 gap-2">
+            <form
+              onSubmit={handleJoinRoom}
+              role="search"
+              aria-label="Unirse a sala por ID o código"
+              className="flex min-w-0 gap-2"
+            >
               <label className="min-w-0 flex-1 sm:w-44">
                 <span className="sr-only">ID o codigo de sala</span>
                 <input
+                  ref={joinCodeInputRef}
                   type="text"
                   value={joinCode}
                   onChange={(event) => setJoinCode(event.target.value)}
                   placeholder="ID o codigo"
+                  aria-label="ID o código de sala para unirse"
                   className="w-full rounded-lg border border-input bg-input-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </label>
@@ -276,6 +305,7 @@ const Groups = () => {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar salas..."
+                aria-label="Buscar salas por nombre, materia o código"
                 className="w-full rounded-lg border border-input bg-input-background py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary sm:w-64"
               />
             </label>
@@ -440,6 +470,7 @@ const Groups = () => {
       {showCreateRoom ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
           <section
+            ref={createRoomRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-room-title"
@@ -511,7 +542,13 @@ const Groups = () => {
 
       {deletingRoom ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
-          <section role="dialog" aria-modal="true" aria-labelledby="delete-room-title" className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl">
+          <section
+            ref={deleteRoomRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-room-title"
+            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl"
+          >
             <h2 id="delete-room-title" className="text-xl font-semibold text-card-foreground">Eliminar sala?</h2>
             <p className="mt-2 text-sm text-muted-foreground">La sala dejara de aparecer en el dashboard y no podra ser usada por invitados.</p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -558,40 +595,49 @@ const RoomFormDialog = ({
   disabled: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) => (
-  <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
-    <section role="dialog" aria-modal="true" aria-labelledby="room-form-title" className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 id="room-form-title" className="text-xl font-semibold text-card-foreground">{title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+}) => {
+  const editRoomRef = useFocusTrap(true);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
+      <section
+        ref={editRoomRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="room-form-title"
+        className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl"
+      >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 id="room-form-title" className="text-xl font-semibold text-card-foreground">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Cerrar dialogo de sala">
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Cerrar dialogo de sala">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
 
-      <form onSubmit={onSubmit} className="space-y-4">
-        <TextField name="name" label="Nombre de la sala" placeholder="Repaso de estructuras de datos" defaultValue={room?.name} />
-        <TextField name="subject" label="Materia" placeholder="Ciencias de la computacion" defaultValue={room?.subject} />
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-card-foreground">Descripcion</span>
-          <textarea name="description" rows={3} defaultValue={room?.description} placeholder="Objetivo breve de esta sala" className="w-full resize-none rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
-        </label>
-        <input type="hidden" name="maxParticipants" value={0} />
-        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
-            Cancelar
-          </button>
-          <button type="submit" disabled={disabled} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60">
-            <Plus className="h-4 w-4" />
-            {submitLabel}
-          </button>
-        </div>
-      </form>
-    </section>
-  </div>
-);
+        <form onSubmit={onSubmit} className="space-y-4">
+          <TextField name="name" label="Nombre de la sala" placeholder="Repaso de estructuras de datos" defaultValue={room?.name} />
+          <TextField name="subject" label="Materia" placeholder="Ciencias de la computacion" defaultValue={room?.subject} />
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-card-foreground">Descripcion</span>
+            <textarea name="description" rows={3} defaultValue={room?.description} placeholder="Objetivo breve de esta sala" className="w-full resize-none rounded-lg border border-input bg-input-background px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+          </label>
+          <input type="hidden" name="maxParticipants" value={0} />
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2.5 font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary">
+              Cancelar
+            </button>
+            <button type="submit" disabled={disabled} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60">
+              <Plus className="h-4 w-4" />
+              {submitLabel}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+};
 
 const TextField = ({ name, label, placeholder, defaultValue }: { name: string; label: string; placeholder: string; defaultValue?: string }) => (
   <label className="block">

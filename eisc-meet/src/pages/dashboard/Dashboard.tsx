@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,8 +8,10 @@ import {
   CalendarDays,
   CheckCircle2,
   DoorOpen,
+  LogIn,
   MessageSquare,
   MonitorUp,
+  Plus,
   Settings,
   Users,
   Video,
@@ -62,8 +64,10 @@ const guideSteps: GuideStep[] = [
 ];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const profile = useAuthStore((state) => state.profile);
   const [activeStep, setActiveStep] = useState(0);
+  const [joinCode, setJoinCode] = useState("");
   const currentStep = guideSteps[activeStep];
 
   const greeting = useMemo(() => {
@@ -77,6 +81,17 @@ const Dashboard = () => {
 
   const goNext = () => {
     setActiveStep((current) => (current === guideSteps.length - 1 ? 0 : current + 1));
+  };
+
+  const handleQuickCreate = () => {
+    navigate("/groups", { state: { action: "create" } });
+  };
+
+  const handleQuickJoin = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const code = joinCode.trim();
+    if (!code) return;
+    navigate("/groups", { state: { action: "join", code } });
   };
 
   return (
@@ -154,12 +169,54 @@ const Dashboard = () => {
 
             <aside className="space-y-5">
               <section className="rounded-lg border border-border bg-card p-5">
-                <h2 className="mb-4 text-lg font-semibold text-card-foreground">Accesos rapidos</h2>
-                <div className="space-y-3">
+                <h2 className="mb-4 text-lg font-semibold text-card-foreground" id="quick-access-title">Accesos rapidos</h2>
+                <nav aria-labelledby="quick-access-title" className="space-y-3">
+                  {/* Crear sala */}
+                  <button
+                    id="btn-quick-create"
+                    type="button"
+                    onClick={handleQuickCreate}
+                    className="flex w-full items-center gap-3 rounded-lg border border-border bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary"
+                    aria-label="Crear una nueva sala de estudio"
+                  >
+                    <Plus className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    Crear sala
+                  </button>
+
+                  {/* Unirse a sala */}
+                  <form
+                    onSubmit={handleQuickJoin}
+                    role="search"
+                    aria-label="Unirse a sala por código"
+                    className="flex gap-2"
+                  >
+                    <label htmlFor="quick-join-code" className="sr-only">ID o código de sala</label>
+                    <input
+                      id="quick-join-code"
+                      type="text"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      placeholder="ID o código de sala"
+                      aria-label="ID o código de sala"
+                      className="min-w-0 flex-1 rounded-lg border border-input bg-input-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      id="btn-quick-join"
+                      type="submit"
+                      disabled={!joinCode.trim()}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label="Unirse a la sala"
+                    >
+                      <LogIn className="h-4 w-4" aria-hidden="true" />
+                      Unirse
+                    </button>
+                  </form>
+
+                  {/* Resto de accesos */}
                   <QuickLink to="/groups" icon={<Users className="h-5 w-5" />} label="Gestionar salas" />
                   <QuickLink to="/sessions" icon={<CalendarDays className="h-5 w-5" />} label="Agenda de sesiones" />
                   <QuickLink to="/notifications" icon={<Bell className="h-5 w-5" />} label="Centro de actividad" />
-                </div>
+                </nav>
               </section>
 
               <section className="rounded-lg border border-border bg-card p-5">
