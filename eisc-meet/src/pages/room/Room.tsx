@@ -105,6 +105,7 @@ const Room = () => {
   const [isVideoOff, setIsVideoOff] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(true);
+  const [showParticipants, setShowParticipants] = useState(false);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState("");
@@ -122,6 +123,7 @@ const Room = () => {
   const selectedVideoDeviceIdRef = useRef("");
   const peerConnectionsRef = useRef<Record<string, RTCPeerConnection>>({});
   const pendingCandidatesRef = useRef<Record<string, RTCIceCandidateInit[]>>({});
+  const makingOfferRef = useRef<Record<string, boolean>>({});
   const previousOnlineUsersRef = useRef<OnlineRoomUser[]>([]);
   const roomUsersInitializedRef = useRef(false);
 
@@ -387,6 +389,22 @@ const Room = () => {
         const previousUsers = previousOnlineUsersRef.current;
         const nextUsers = payload.users;
 
+        // Limpieza defensiva de conexiones zombie o inactivas
+        const nextSocketIds = new Set(nextUsers.map((u) => u.socketId));
+        Object.keys(peerConnectionsRef.current).forEach((socketId) => {
+          if (!nextSocketIds.has(socketId)) {
+            peerConnectionsRef.current[socketId]?.close();
+            delete peerConnectionsRef.current[socketId];
+            delete pendingCandidatesRef.current[socketId];
+            delete makingOfferRef.current[socketId];
+            setRemoteStreams((current) => {
+              const next = { ...current };
+              delete next[socketId];
+              return next;
+            });
+          }
+        });
+
         if (roomUsersInitializedRef.current) {
           nextUsers
             .filter((user) => user.userId !== currentUserId)
@@ -603,9 +621,15 @@ const Room = () => {
       const connection = createPeerConnection(targetSocketId);
       if (connection.signalingState !== "stable") return;
 
-      const offer = await connection.createOffer();
-      await connection.setLocalDescription(offer);
-      socket.emit("webrtc:offer", { roomId, targetSocketId, offer });
+      try {
+        makingOfferRef.current[targetSocketId] = true;
+        const offer = await connection.createOffer();
+        if (connection.signalingState !== "stable") return;
+        await connection.setLocalDescription(offer);
+        socket.emit("webrtc:offer", { roomId, targetSocketId, offer });
+      } finally {
+        makingOfferRef.current[targetSocketId] = false;
+      }
     };
 
     const handleRoomUsersForWebRtc = (payload: { roomId: string; users: OnlineRoomUser[] }) => {
@@ -624,12 +648,28 @@ const Room = () => {
     const handleOffer = async (payload: WebRtcOfferPayload) => {
       if (payload.roomId !== roomId) return;
 
-      const connection = createPeerConnection(payload.fromSocketId);
-      await connection.setRemoteDescription(new RTCSessionDescription(payload.offer));
-      await flushPendingCandidates(payload.fromSocketId);
-      const answer = await connection.createAnswer();
-      await connection.setLocalDescription(answer);
-      socket.emit("webrtc:answer", { roomId, targetSocketId: payload.fromSocketId, answer });
+      const fromSocketId = payload.fromSocketId;
+      const connection = createPeerConnection(fromSocketId);
+
+      const isPolite = socket.id !== undefined && socket.id > fromSocketId;
+      const offerCollision =
+        payload.offer.type === "offer" &&
+        (makingOfferRef.current[fromSocketId] || connection.signalingState !== "stable");
+
+      if (offerCollision && !isPolite) return;
+
+      try {
+        if (offerCollision) {
+          await connection.setLocalDescription({ type: "rollback" });
+        }
+        await connection.setRemoteDescription(new RTCSessionDescription(payload.offer));
+        await flushPendingCandidates(fromSocketId);
+        const answer = await connection.createAnswer();
+        await connection.setLocalDescription(answer);
+        socket.emit("webrtc:answer", { roomId, targetSocketId: fromSocketId, answer });
+      } catch (error) {
+        console.error("[WebRTC] handleOffer error:", error);
+      }
     };
 
     const handleAnswer = async (payload: WebRtcAnswerPayload) => {
@@ -664,6 +704,7 @@ const Room = () => {
       peerConnectionsRef.current[payload.socketId]?.close();
       delete peerConnectionsRef.current[payload.socketId];
       delete pendingCandidatesRef.current[payload.socketId];
+      delete makingOfferRef.current[payload.socketId];
       setRemoteStreams((current) => {
         const next = { ...current };
         delete next[payload.socketId];
@@ -798,6 +839,22 @@ const Room = () => {
     navigate("/dashboard");
   }, [navigate, roomId]);
 
+  const handleToggleChat = useCallback(() => {
+    setShowChat((current) => {
+      const next = !current;
+      if (next) setShowParticipants(false);
+      return next;
+    });
+  }, []);
+
+  const handleToggleParticipants = useCallback(() => {
+    setShowParticipants((current) => {
+      const next = !current;
+      if (next) setShowChat(false);
+      return next;
+    });
+  }, []);
+
   return (
     <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground" aria-label="Sala de estudio colaborativo">
       <header className="flex items-center justify-between gap-3 border-b border-border bg-card/95 px-3 py-2.5 shadow-sm sm:px-4">
@@ -818,11 +875,21 @@ const Room = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-sm font-medium text-card-foreground sm:flex" aria-live="polite">
+          <button
+            type="button"
+            onClick={handleToggleParticipants}
+            className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary sm:flex ${
+              showParticipants
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-background text-card-foreground hover:bg-accent"
+            }`}
+            aria-live="polite"
+            aria-label="Alternar lista de participantes"
+          >
             <Users className="h-4 w-4 text-primary" aria-hidden="true" />
             <span>{participants.length}</span>
             <span className="text-muted-foreground">participantes</span>
-          </div>
+          </button>
           <div className="relative">
             <button
               type="button"
@@ -874,20 +941,31 @@ const Room = () => {
       <section className="flex min-h-0 flex-1 overflow-hidden bg-background" aria-label="Contenido de la sala">
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex items-center justify-between gap-3 border-b border-border/80 px-3 py-2 sm:hidden">
-            <div className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm font-medium text-card-foreground" aria-live="polite">
+            <button
+              type="button"
+              onClick={handleToggleParticipants}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+                showParticipants
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "bg-card text-card-foreground border border-border/50 hover:bg-accent"
+              }`}
+              aria-live="polite"
+            >
               <Users className="h-4 w-4 text-primary" aria-hidden="true" />
               <span>{participants.length} participantes</span>
-            </div>
-            {!showChat ? (
-              <button
-                type="button"
-                onClick={() => setShowChat(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm font-medium text-card-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <MessageSquare className="h-4 w-4" aria-hidden="true" />
-                Chat
-              </button>
-            ) : null}
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleChat}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+                showChat
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "bg-card text-card-foreground border border-border/50 hover:bg-accent"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              Chat
+            </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
@@ -933,6 +1011,15 @@ const Room = () => {
             />
           </aside>
         ) : null}
+
+        {showParticipants ? (
+          <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-card md:flex xl:w-96" aria-label="Participantes de la sala">
+            <ParticipantsPanel
+              participants={participants}
+              onClose={() => setShowParticipants(false)}
+            />
+          </aside>
+        ) : null}
       </section>
 
       {showChat ? (
@@ -953,12 +1040,29 @@ const Room = () => {
         </section>
       ) : null}
 
+      {showParticipants ? (
+        <section className="max-h-[42dvh] border-t border-border bg-card md:hidden" aria-label="Participantes de la sala">
+          <ParticipantsPanel
+            compact
+            participants={participants}
+            onClose={() => setShowParticipants(false)}
+          />
+        </section>
+      ) : null}
+
       <footer className="relative z-40 border-t border-border bg-card px-3 py-2.5 sm:px-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 overflow-visible">
-          <div className="hidden min-w-0 items-center gap-2 text-sm text-muted-foreground lg:flex">
+          <button
+            type="button"
+            onClick={handleToggleParticipants}
+            className={`hidden min-w-0 items-center gap-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary lg:flex hover:text-primary ${
+              showParticipants ? "text-primary font-semibold" : "text-muted-foreground"
+            }`}
+            aria-label="Alternar lista de participantes"
+          >
             <Users className="h-5 w-5" aria-hidden="true" />
             <span>{participants.length} participantes</span>
-          </div>
+          </button>
 
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2 overflow-visible px-1 sm:flex-nowrap">
             <MediaControlGroup
@@ -1002,9 +1106,18 @@ const Room = () => {
               disabled={mediaLoading}
               onClick={toggleScreenShare}
             />
-            {!showChat ? (
-              <ControlButton icon={<MessageSquare className="h-5 w-5" />} label="Mensajes" onClick={() => setShowChat(true)} />
-            ) : null}
+            <ControlButton
+              icon={<MessageSquare className="h-5 w-5" />}
+              label="Chat"
+              active={showChat}
+              onClick={handleToggleChat}
+            />
+            <ControlButton
+              icon={<Users className="h-5 w-5" />}
+              label="Participantes"
+              active={showParticipants}
+              onClick={handleToggleParticipants}
+            />
             <button
               type="button"
               onClick={leaveRoom}
@@ -1098,6 +1211,72 @@ const StreamAudio = ({ stream }: { stream: MediaStream }) => {
   }, [stream]);
 
   return <audio ref={audioRef} autoPlay playsInline aria-label="Audio del participante" />;
+};
+
+const ParticipantsPanel = ({
+  compact,
+  participants,
+  onClose,
+}: {
+  compact?: boolean;
+  participants: VideoParticipant[];
+  onClose: () => void;
+}) => {
+  return (
+    <div className={`flex min-h-0 flex-col ${compact ? "max-h-[42dvh]" : "h-full"}`}>
+      <div className="flex items-center justify-between border-b border-border p-4">
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" aria-hidden="true" />
+          <h2 className="font-semibold text-card-foreground">Participantes ({participants.length})</h2>
+        </div>
+        <button onClick={onClose} className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Cerrar lista de participantes">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="flex-1 space-y-3 overflow-auto p-4">
+        {participants.map((participant) => (
+          <div key={participant.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm hover:bg-accent/30 transition-colors">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 font-semibold text-primary text-sm">
+                {participant.avatar}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-card-foreground">
+                  {participant.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {participant.isLocal ? "Tú" : participant.isOnline ? "En línea" : "Desconectado"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {participant.isMuted ? (
+                <div className="rounded-full bg-red-500/10 p-1.5 text-red-500" title="Micrófono apagado">
+                  <MicOff className="h-4 w-4" />
+                </div>
+              ) : (
+                <div className="rounded-full bg-green-500/10 p-1.5 text-green-500" title="Micrófono encendido">
+                  <Mic className="h-4 w-4" />
+                </div>
+              )}
+
+              {participant.isVideoOff ? (
+                <div className="rounded-full bg-red-500/10 p-1.5 text-red-500" title="Cámara apagada">
+                  <VideoOff className="h-4 w-4" />
+                </div>
+              ) : (
+                <div className="rounded-full bg-green-500/10 p-1.5 text-green-500" title="Cámara encendida">
+                  <Video className="h-4 w-4" />
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 const ChatPanel = ({
@@ -1362,6 +1541,7 @@ const DeviceSelect = ({
 };
 
 const ControlButton = ({ icon, label, active, disabled, onClick }: { icon: ReactNode; label: string; active?: boolean; disabled?: boolean; onClick?: () => void }) => {
+  const isActiveState = active === true;
   const isDisabledState = active === false;
 
   return (
@@ -1370,7 +1550,11 @@ const ControlButton = ({ icon, label, active, disabled, onClick }: { icon: React
       onClick={onClick}
       disabled={disabled}
       className={`flex h-12 min-w-12 shrink-0 items-center justify-center rounded-full px-3 transition-colors focus:outline-none focus:ring-2 focus:ring-primary sm:min-w-24 sm:gap-1.5 sm:rounded-xl sm:px-4 ${
-        isDisabledState ? "bg-red-400 text-white hover:bg-red-500" : "bg-accent text-accent-foreground hover:bg-accent/80"
+        isActiveState
+          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+          : isDisabledState
+          ? "bg-red-400 text-white hover:bg-red-500"
+          : "bg-accent text-accent-foreground hover:bg-accent/80"
       } disabled:cursor-not-allowed disabled:opacity-60`}
       aria-label={label}
       aria-pressed={typeof active === "boolean" ? active : undefined}
