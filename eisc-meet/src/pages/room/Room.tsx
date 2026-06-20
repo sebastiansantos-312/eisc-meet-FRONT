@@ -639,9 +639,7 @@ const Room = () => {
         .filter((user) => user.socketId !== socket.id)
         .filter((user) => !peerConnectionsRef.current[user.socketId])
         .forEach((user) => {
-          if (socket.id && socket.id < user.socketId) {
-            callPeer(user.socketId).catch(() => setMediaError("No se pudo iniciar la conexion de video con otro participante."));
-          }
+          callPeer(user.socketId).catch(() => setMediaError("No se pudo iniciar la conexion de video con otro participante."));
         });
     };
 
