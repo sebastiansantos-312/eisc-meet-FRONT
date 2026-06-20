@@ -126,6 +126,7 @@ const Room = () => {
   const makingOfferRef = useRef<Record<string, boolean>>({});
   const previousOnlineUsersRef = useRef<OnlineRoomUser[]>([]);
   const roomUsersInitializedRef = useRef(false);
+  const callPeerRef = useRef<((targetSocketId: string) => Promise<void>) | null>(null);
 
   const hasAudioTrack = Boolean(localStream?.getAudioTracks().length);
   const hasVideoTrack = Boolean(localStream?.getVideoTracks().length);
@@ -214,7 +215,20 @@ const Room = () => {
     ]);
 
     cameraTrackBeforeScreenRef.current = null;
-    replaceVideoTrackInConnections(peerConnectionsRef.current, shouldRestoreCamera ? cameraTrack : null, nextStream);
+
+    const handleForceNegotiate = (targetSocketId: string) => {
+      callPeerRef.current?.(targetSocketId).catch(() => {
+        setMediaError("No se pudo actualizar la conexion de video.");
+      });
+    };
+
+    replaceVideoTrackInConnections(
+      peerConnectionsRef.current,
+      shouldRestoreCamera ? cameraTrack : null,
+      nextStream,
+      handleForceNegotiate
+    );
+
     localStreamRef.current = nextStream.getTracks().length ? nextStream : null;
     setLocalStream(localStreamRef.current);
     setIsScreenSharing(false);
@@ -249,7 +263,19 @@ const Room = () => {
       const audioTracks = localStreamRef.current?.getAudioTracks() ?? [];
       const nextStream = new MediaStream([...audioTracks, screenTrack]);
 
-      replaceVideoTrackInConnections(peerConnectionsRef.current, screenTrack, nextStream);
+      const handleForceNegotiate = (targetSocketId: string) => {
+        callPeerRef.current?.(targetSocketId).catch(() => {
+          setMediaError("No se pudo actualizar la conexion de video.");
+        });
+      };
+
+      replaceVideoTrackInConnections(
+        peerConnectionsRef.current,
+        screenTrack,
+        nextStream,
+        handleForceNegotiate
+      );
+
       localStreamRef.current = nextStream;
       setLocalStream(nextStream);
       setIsScreenSharing(true);
@@ -632,6 +658,8 @@ const Room = () => {
       }
     };
 
+    callPeerRef.current = callPeer;
+
     const handleRoomUsersForWebRtc = (payload: { roomId: string; users: OnlineRoomUser[] }) => {
       if (payload.roomId !== roomId) return;
 
@@ -717,6 +745,7 @@ const Room = () => {
     socket.on("webrtc:peer-left", handlePeerLeft);
 
     return () => {
+      callPeerRef.current = null;
       socket.off("room:users", handleRoomUsersForWebRtc);
       socket.off("webrtc:offer", handleOffer);
       socket.off("webrtc:answer", handleAnswer);
@@ -1180,12 +1209,36 @@ const ParticipantVideo = ({ participant }: { participant: VideoParticipant }) =>
 
 const StreamVideo = ({ stream }: { stream: MediaStream }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoTrack = stream.getVideoTracks()[0];
+  const videoTrackId = videoTrack?.id;
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    videoElement.srcObject = stream;
+
+    const handleTrackState = () => {
+      if (videoElement.srcObject !== stream) {
+        videoElement.srcObject = stream;
+      }
+      videoElement.play().catch(() => undefined);
+    };
+
+    if (videoTrack) {
+      videoTrack.addEventListener("mute", handleTrackState);
+      videoTrack.addEventListener("unmute", handleTrackState);
+      videoTrack.addEventListener("ended", handleTrackState);
     }
-  }, [stream]);
+
+    return () => {
+      if (videoTrack) {
+        videoTrack.removeEventListener("mute", handleTrackState);
+        videoTrack.removeEventListener("unmute", handleTrackState);
+        videoTrack.removeEventListener("ended", handleTrackState);
+      }
+    };
+  }, [stream, videoTrack, videoTrackId]);
 
   return (
     <video
@@ -1652,20 +1705,35 @@ const replaceVideoTrackInConnections = (
   connections: Record<string, RTCPeerConnection>,
   track: MediaStreamTrack | null,
   stream: MediaStream,
+  onForceNegotiate?: (targetSocketId: string) => void,
 ) => {
-  Object.values(connections).forEach((connection) => {
-    replaceVideoTrackInConnection(connection, track, stream);
+  Object.entries(connections).forEach(([targetSocketId, connection]) => {
+    replaceVideoTrackInConnection(connection, track, stream, () => {
+      if (onForceNegotiate) onForceNegotiate(targetSocketId);
+    });
   });
 };
 
-const replaceVideoTrackInConnection = (connection: RTCPeerConnection, track: MediaStreamTrack | null, stream: MediaStream) => {
+const replaceVideoTrackInConnection = (
+  connection: RTCPeerConnection,
+  track: MediaStreamTrack | null,
+  stream: MediaStream,
+  onNegotiateNeeded?: () => void,
+) => {
   const transceiver = connection.getTransceivers().find((entry) => {
     return entry.receiver.track.kind === "video" || entry.sender.track?.kind === "video";
   });
 
   if (transceiver) {
+    const directionChanged = transceiver.direction !== (track ? "sendrecv" : "recvonly");
     transceiver.direction = track ? "sendrecv" : "recvonly";
     transceiver.sender.replaceTrack(track).catch(() => undefined);
+
+    // Si la dirección no cambió pero pusimos un track nuevo (ej. reemplazo de cámara por pantalla),
+    // forzamos la renegociación de forma manual para que el receptor adapte la resolución y códecs.
+    if (!directionChanged && track && onNegotiateNeeded) {
+      onNegotiateNeeded();
+    }
     return;
   }
 
