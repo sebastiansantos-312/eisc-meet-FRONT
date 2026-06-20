@@ -173,12 +173,15 @@ const Room = () => {
     const enableVideo = options?.enableVideo ?? true;
 
     try {
+      // Liberar primero los tracks anteriores para desbloquear el hardware
+      localStreamRef.current?.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: enableAudio ? mediaConstraintForDevice(options?.audioDeviceId || selectedAudioDeviceIdRef.current) : false,
         video: enableVideo ? mediaConstraintForDevice(options?.videoDeviceId || selectedVideoDeviceIdRef.current) : false,
       });
 
-      localStreamRef.current?.getTracks().forEach((track) => track.stop());
       localStreamRef.current = stream;
       applyStreamToPeers(stream);
       setLocalStream(stream);
@@ -406,9 +409,15 @@ const Room = () => {
     if (!roomId || !authUser?.uid) return;
     const currentUserId = authUser.uid;
 
+    const handleConnect = () => {
+      socket.emit("room:join", { roomId, displayName: localDisplayName, avatar: localAvatar });
+    };
+
     connectSocket().then((connected) => {
       if (connected) socket.emit("room:join", { roomId, displayName: localDisplayName, avatar: localAvatar });
     });
+
+    socket.on("connect", handleConnect);
 
     const handleRoomUsers = (payload: { roomId: string; users: OnlineRoomUser[] }) => {
       if (payload.roomId === roomId) {
@@ -513,6 +522,7 @@ const Room = () => {
       socket.emit("room:leave", { roomId });
       previousOnlineUsersRef.current = [];
       roomUsersInitializedRef.current = false;
+      socket.off("connect", handleConnect);
       socket.off("room:users", handleRoomUsers);
       socket.off("chat:message", handleChatMessage);
       socket.off("chat:error", handleChatError);
